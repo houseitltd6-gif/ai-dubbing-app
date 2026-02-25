@@ -1,8 +1,7 @@
 import streamlit as st
 import subprocess, os, whisper, time
 from gtts import gTTS
-from googletrans import Translator
-
+from deep_translator import GoogleTranslator
 st.set_page_config(
     page_title="AI Video Dubbing",
     page_icon="🎬",
@@ -33,7 +32,6 @@ selected_langs = st.multiselect(
 )
 
 def translate_text(text, lang_code):
-    translator = Translator()
     sentences = text.split('. ')
     chunks, current = [], ""
     for s in sentences:
@@ -47,12 +45,11 @@ def translate_text(text, lang_code):
     parts = []
     for chunk in chunks:
         try:
-            time.sleep(0.5)
-            r = translator.translate(chunk, src='en', dest=lang_code)
-            if r and r.text:
-                parts.append(r.text)
-            else:
-                parts.append(chunk)
+            translated = GoogleTranslator(
+                source='en',
+                target=lang_code
+            ).translate(chunk)
+            parts.append(translated if translated else chunk)
         except:
             parts.append(chunk)
     return ' '.join(parts)
