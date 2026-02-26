@@ -205,9 +205,9 @@ if st.button("🚀 ডাবিং শুরু করুন"):
         st.markdown('<div class="success-box">🎉 সব ডাবিং সম্পন্ন!</div>', unsafe_allow_html=True)
 
 # ---- Footer ----
-st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown("""
-<div style='text-align:center; color:#555577; font-size:0.85rem;'>
-    Made with ❤️ | DubAI — Bangladesh's First AI Dubbing Tool
+<div style='text-align:center; padding: 1rem;'>
+    <span style='color:#555577; font-size:0.85rem;'>Made with ❤️ by </span>
+    <span style='color:#6c63ff; font-size:0.95rem; font-weight:bold;'>House IT LTD</span>
 </div>
 """, unsafe_allow_html=True)
