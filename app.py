@@ -207,7 +207,7 @@ if st.button("🚀 ডাবিং শুরু করুন"):
 # ---- Footer ----
 st.markdown("""
 <div style='text-align:center; padding: 1rem;'>
-    <span style='color:#555577; font-size:0.85rem;'>Made with ❤️ by </span>
+    <span style='color:#555577; font-size:0.85rem;'>Made with Hasibur Joy by </span>
     <span style='color:#6c63ff; font-size:0.95rem; font-weight:bold;'>House IT LTD</span>
 </div>
 """, unsafe_allow_html=True)
