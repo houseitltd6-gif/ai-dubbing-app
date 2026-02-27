@@ -1,0 +1,6 @@
+openai-whisper
+gtts
+deep-translator
+streamlit
+ffmpeg-python
+elevenlabs==1.9.0
