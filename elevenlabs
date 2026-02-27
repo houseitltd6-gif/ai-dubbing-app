@@ -3,4 +3,4 @@ gtts
 deep-translator
 streamlit
 ffmpeg-python
-elevenlabs
+elevenlabs==1.9.0
