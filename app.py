@@ -7,10 +7,10 @@ from elevenlabs import ElevenLabs
 # ElevenLabs Client
 client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-# Voice IDs
+# Voice IDs — ElevenLabs verified
 VOICES = {
-    "👨 পুরুষ কণ্ঠ": "TxGEqnHWrfWFTfGW9XjX",
-    "👩 মহিলা কণ্ঠ": "21m00Tcm4TlvDq8ikWAM",
+    "👨 পুরুষ কণ্ঠ": "pNInz6obpgDQGcFmaJgB",  # Adam (Male)
+    "👩 মহিলা কণ্ঠ": "EXAVITQu4vr4xnSDxMaL",  # Bella (Female)
 }
 
 st.set_page_config(
@@ -208,15 +208,17 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ---- TEXT TO SPEECH ----
 def text_to_speech(text, lang_code, output_path, voice_id):
     try:
-        audio = client.generate(
+        audio_generator = client.generate(
             text=text,
             voice=voice_id,
             model="eleven_multilingual_v2"
         )
         with open(output_path, "wb") as f:
-            for chunk in audio:
-                f.write(chunk)
-    except:
+            for chunk in audio_generator:
+                if chunk:
+                    f.write(chunk)
+    except Exception as e:
+        st.warning(f"ElevenLabs error, gTTS দিয়ে চেষ্টা করছে...")
         tts = gTTS(text=text, lang=lang_code, slow=False)
         tts.save(output_path)
 
@@ -248,6 +250,10 @@ if st.button("🚀 ডাবিং শুরু করুন"):
     elif not selected_langs:
         st.error("⚠️ কমপক্ষে একটি ভাষা সিলেক্ট করুন!")
     else:
+        # Selected voice ID সঠিকভাবে নেওয়া
+        voice_id = VOICES[selected_voice]
+        st.info(f"🎙️ কণ্ঠ: {selected_voice}")
+
         video_path = "/tmp/input_video.mp4"
         with open(video_path, "wb") as f:
             f.write(uploaded_file.read())
@@ -274,8 +280,6 @@ if st.button("🚀 ডাবিং শুরু করুন"):
         st.markdown("---")
         st.markdown('<div class="section-title">⬇️ ডাউনলোড করুন</div>', unsafe_allow_html=True)
 
-        voice_id = VOICES[selected_voice]
-
         for lang_name in selected_langs:
             lang_code = LANGUAGES[lang_name]
             status.info(f"⏳ {lang_name} ডাবিং হচ্ছে...")
@@ -286,8 +290,8 @@ if st.button("🚀 ডাবিং শুরু করুন"):
 
             output_path = f"/tmp/dubbed_{lang_code}.mp4"
             subprocess.run(
-                f'ffmpeg -i "{video_path}" -i {audio_path} '
-                f'-c:v copy -map 0:v:0 -map 1:a:0 -shortest {output_path} -y',
+                f'ffmpeg -i "{video_path}" -i "{audio_path}" '
+                f'-c:v copy -map 0:v:0 -map 1:a:0 -shortest "{output_path}" -y',
                 shell=True, capture_output=True
             )
 
