@@ -7,6 +7,12 @@ from elevenlabs import ElevenLabs
 # ElevenLabs Client
 client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
+# Voice IDs
+VOICES = {
+    "👨 পুরুষ কণ্ঠ": "TxGEqnHWrfWFTfGW9XjX",
+    "👩 মহিলা কণ্ঠ": "21m00Tcm4TlvDq8ikWAM",
+}
+
 st.set_page_config(
     page_title="DubIT — AI Video Dubbing",
     page_icon="🎬",
@@ -82,6 +88,12 @@ st.markdown("""
     background: #0f0f1f !important;
     border: 1px solid rgba(139, 92, 246, 0.3) !important;
     border-radius: 12px !important;
+}
+.stRadio > div {
+    background: #0f0f1f !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    padding: 0.8rem !important;
 }
 .stButton > button {
     background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
@@ -183,13 +195,22 @@ selected_langs = st.multiselect(
 )
 
 st.markdown("<br>", unsafe_allow_html=True)
+st.markdown('<div class="section-title">🎙️ কণ্ঠ সিলেক্ট করুন</div>', unsafe_allow_html=True)
+selected_voice = st.radio(
+    "",
+    list(VOICES.keys()),
+    horizontal=True,
+    label_visibility="collapsed"
+)
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ---- TEXT TO SPEECH ----
-def text_to_speech(text, lang_code, output_path):
+def text_to_speech(text, lang_code, output_path, voice_id):
     try:
         audio = client.generate(
             text=text,
-            voice="pNInz6obpgDQGcFmaJgB",
+            voice=voice_id,
             model="eleven_multilingual_v2"
         )
         with open(output_path, "wb") as f:
@@ -253,13 +274,15 @@ if st.button("🚀 ডাবিং শুরু করুন"):
         st.markdown("---")
         st.markdown('<div class="section-title">⬇️ ডাউনলোড করুন</div>', unsafe_allow_html=True)
 
+        voice_id = VOICES[selected_voice]
+
         for lang_name in selected_langs:
             lang_code = LANGUAGES[lang_name]
             status.info(f"⏳ {lang_name} ডাবিং হচ্ছে...")
 
             translated = translate_text(english_text, lang_code)
             audio_path = f"/tmp/audio_{lang_code}.mp3"
-            text_to_speech(translated, lang_code, audio_path)
+            text_to_speech(translated, lang_code, audio_path, voice_id)
 
             output_path = f"/tmp/dubbed_{lang_code}.mp4"
             subprocess.run(
