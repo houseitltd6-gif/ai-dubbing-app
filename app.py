@@ -2,6 +2,10 @@ import streamlit as st
 import subprocess, os, whisper, time
 from gtts import gTTS
 from deep_translator import GoogleTranslator
+from elevenlabs import ElevenLabs
+
+# ElevenLabs Client
+client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
 st.set_page_config(
     page_title="DubIT — AI Video Dubbing",
@@ -12,14 +16,8 @@ st.set_page_config(
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 * { font-family: 'Inter', sans-serif; }
-
-.stApp {
-    background: #080812;
-}
-
-/* Hero */
+.stApp { background: #080812; }
 .hero {
     background: linear-gradient(135deg, #1a0533 0%, #0d1b4b 50%, #001a3a 100%);
     border: 1px solid rgba(139, 92, 246, 0.3);
@@ -27,17 +25,6 @@ st.markdown("""
     padding: 3rem 2rem;
     text-align: center;
     margin-bottom: 2rem;
-    position: relative;
-    overflow: hidden;
-}
-.hero::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 60%);
 }
 .hero-badge {
     display: inline-block;
@@ -59,20 +46,9 @@ st.markdown("""
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0.5rem 0 !important;
-    line-height: 1.1 !important;
 }
-.hero p {
-    color: #94a3b8;
-    font-size: 1.1rem;
-    margin: 0;
-}
-
-/* Stats */
-.stats-row {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
+.hero p { color: #94a3b8; font-size: 1.1rem; margin: 0; }
+.stats-row { display: flex; gap: 1rem; margin-bottom: 2rem; }
 .stat-card {
     flex: 1;
     background: linear-gradient(135deg, #0f0f1f, #1a1a35);
@@ -80,12 +56,6 @@ st.markdown("""
     border-radius: 16px;
     padding: 1.2rem;
     text-align: center;
-    transition: all 0.3s;
-}
-.stat-card:hover {
-    border-color: rgba(139, 92, 246, 0.6);
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.2);
 }
 .stat-number {
     font-size: 1.8rem;
@@ -94,15 +64,7 @@ st.markdown("""
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.stat-label {
-    color: #64748b;
-    font-size: 0.8rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* Section */
+.stat-label { color: #64748b; font-size: 0.8rem; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
 .section-title {
     color: #e2e8f0;
     font-size: 1rem;
@@ -110,31 +72,17 @@ st.markdown("""
     text-transform: uppercase;
     letter-spacing: 2px;
     margin-bottom: 0.8rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
-
-/* Upload area */
 .stFileUploader > div {
     background: linear-gradient(135deg, #0f0f1f, #1a1a35) !important;
     border: 2px dashed rgba(139, 92, 246, 0.4) !important;
     border-radius: 16px !important;
-    transition: all 0.3s !important;
 }
-.stFileUploader > div:hover {
-    border-color: rgba(139, 92, 246, 0.8) !important;
-    box-shadow: 0 0 30px rgba(139, 92, 246, 0.15) !important;
-}
-
-/* Multiselect */
 .stMultiSelect > div > div {
     background: #0f0f1f !important;
     border: 1px solid rgba(139, 92, 246, 0.3) !important;
     border-radius: 12px !important;
 }
-
-/* Button */
 .stButton > button {
     background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
     color: white !important;
@@ -144,22 +92,12 @@ st.markdown("""
     font-size: 1.1rem !important;
     font-weight: 700 !important;
     width: 100% !important;
-    letter-spacing: 0.5px !important;
-    transition: all 0.3s !important;
     box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4) !important;
 }
-.stButton > button:hover {
-    transform: translateY(-3px) !important;
-    box-shadow: 0 8px 35px rgba(124, 58, 237, 0.6) !important;
-}
-
-/* Progress */
 .stProgress > div > div {
     background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
     border-radius: 10px !important;
 }
-
-/* Download button */
 .stDownloadButton > button {
     background: linear-gradient(135deg, #065f46, #047857) !important;
     color: white !important;
@@ -167,20 +105,7 @@ st.markdown("""
     border-radius: 12px !important;
     font-weight: 600 !important;
     width: 100% !important;
-    transition: all 0.3s !important;
 }
-.stDownloadButton > button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3) !important;
-}
-
-/* Info/Success boxes */
-.stAlert {
-    border-radius: 12px !important;
-    border: none !important;
-}
-
-/* Footer */
 .footer {
     text-align: center;
     padding: 2rem 0 1rem;
@@ -194,12 +119,7 @@ st.markdown("""
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.footer-sub {
-    color: #334155;
-    font-size: 0.8rem;
-    margin-top: 0.3rem;
-}
-
+.footer-sub { color: #334155; font-size: 0.8rem; margin-top: 0.3rem; }
 footer { visibility: hidden; }
 #MainMenu { visibility: hidden; }
 </style>
@@ -264,6 +184,21 @@ selected_langs = st.multiselect(
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# ---- TEXT TO SPEECH ----
+def text_to_speech(text, lang_code, output_path):
+    try:
+        audio = client.generate(
+            text=text,
+            voice="pNInz6obpgDQGcFmaJgB",
+            model="eleven_multilingual_v2"
+        )
+        with open(output_path, "wb") as f:
+            for chunk in audio:
+                f.write(chunk)
+    except:
+        tts = gTTS(text=text, lang=lang_code, slow=False)
+        tts.save(output_path)
+
 # ---- TRANSLATE ----
 def translate_text(text, lang_code):
     sentences = text.split('. ')
@@ -324,8 +259,7 @@ if st.button("🚀 ডাবিং শুরু করুন"):
 
             translated = translate_text(english_text, lang_code)
             audio_path = f"/tmp/audio_{lang_code}.mp3"
-            tts = gTTS(text=translated, lang=lang_code, slow=False)
-            tts.save(audio_path)
+            text_to_speech(translated, lang_code, audio_path)
 
             output_path = f"/tmp/dubbed_{lang_code}.mp4"
             subprocess.run(
