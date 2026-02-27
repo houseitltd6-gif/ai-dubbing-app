@@ -7,10 +7,10 @@ from elevenlabs import ElevenLabs, VoiceSettings
 # ElevenLabs Client
 client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-# ElevenLabs Voice IDs
+# Voice IDs
 VOICES = {
-    "👨 পুরুষ কণ্ঠ": "TxGEqnHWrfWFTfGW9XjX",  # Josh (Male)
-    "👩 মহিলা কণ্ঠ": "21m00Tcm4TlvDq8ikWAM",  # Rachel (Female)
+    "👨 পুরুষ কণ্ঠ": "pNInz6obpgDQGcFmaJgB",
+    "👩 মহিলা কণ্ঠ": "EXAVITQu4vr4xnSDxMaL",
 }
 
 LANGUAGES = {
@@ -317,7 +317,8 @@ else:
 
                 translated = translate_text(english_text, lang_code)
                 audio_path = f"/tmp/audio_{lang_code}.mp3"
-text_to_speech(translated, lang_code, audio_path, VOICES[selected_voice])
+                text_to_speech(translated, lang_code, audio_path, voice_id)
+
                 output_path = f"/tmp/dubbed_{lang_code}.mp4"
                 subprocess.run(
                     f'ffmpeg -i "{video_path}" -i "{audio_path}" '
