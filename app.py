@@ -1,10 +1,7 @@
 import streamlit as st
-import subprocess, os, whisper, asyncio
+import subprocess, os, whisper
 from gtts import gTTS
 from deep_translator import GoogleTranslator
-import edge_tts
-import nest_asyncio
-nest_asyncio.apply()
 
 ALL_VOICES = {
     "👨 বাংলা পুরুষ — Pradeep":    "bn-BD-PradeepNeural",
@@ -30,8 +27,8 @@ ALL_VOICES = {
 }
 
 PREVIEW_TEXT = {
-    "bn": "হ্যালো, আমি DubIT এর কণ্ঠ। আমাকে শুনুন।",
-    "en": "Hello, I am a DubIT voice. Listen to me.",
+    "bn": "হ্যালো, আমি DubIT এর কণ্ঠ।",
+    "en": "Hello, I am a DubIT voice.",
     "hi": "नमस्ते, मैं DubIT की आवाज़ हूँ।",
     "ur": "ہیلو، میں DubIT کی آواز ہوں۔",
     "tr": "Merhaba, ben DubIT sesinim.",
@@ -202,25 +199,21 @@ if "selected_voice_key" not in st.session_state:
     st.session_state.selected_voice_key = ""
 
 # ---- FUNCTIONS ----
-async def tts_async(text, voice_name, output_path):
-    communicate = edge_tts.Communicate(text, voice_name)
-    await communicate.save(output_path)
-
 def text_to_speech(text, voice_code, output_path):
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(tts_async(text, voice_code, output_path))
-        loop.close()
+        text_file = "/tmp/tts_input.txt"
+        with open(text_file, "w", encoding="utf-8") as f:
+            f.write(text)
+        result = subprocess.run(
+            f'edge-tts --voice "{voice_code}" --file "{text_file}" --write-media "{output_path}"',
+            shell=True, capture_output=True, text=True, timeout=60
+        )
         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
             return True
         return False
-    except Exception as e:
-        try:
-            asyncio.run(tts_async(text, voice_code, output_path))
-            return os.path.exists(output_path)
-        except:
-            return False
+    except:
+        return False
+
 def text_to_speech_gtts(text, lang_code, output_path):
     try:
         tts = gTTS(text=text, lang=lang_code, slow=False)
@@ -267,10 +260,6 @@ def translate_text(text, src_code, dest_code):
         except:
             parts.append(chunk)
     return ' '.join(parts)
-
-def get_voice_lang(voice_code):
-    code = voice_code[:2]
-    return code if code in PREVIEW_TEXT else "en"
 
 # ---- HERO ----
 st.markdown("""
@@ -355,12 +344,12 @@ else:
     with col_prev:
         if st.button("🔊 এই কণ্ঠ শুনুন"):
             voice_code = ALL_VOICES[selected_voice]
-            lang_code = get_voice_lang(voice_code)
+            lang_code = voice_code[:2]
             preview_text = PREVIEW_TEXT.get(lang_code, PREVIEW_TEXT["en"])
             preview_path = "/tmp/preview_voice.mp3"
             with st.spinner("কণ্ঠ তৈরি হচ্ছে..."):
                 success = text_to_speech(preview_text, voice_code, preview_path)
-                if success and os.path.exists(preview_path):
+                if success:
                     with open(preview_path, "rb") as f:
                         st.audio(f.read(), format="audio/mp3")
                 else:
@@ -399,7 +388,6 @@ else:
             progress.progress(40)
 
             video_duration = get_duration(video_path)
-
             step = 60 // len(selected_langs)
             current_progress = 40
             dubbed_files = {}
@@ -462,3 +450,13 @@ st.markdown("""
     <div class="footer-sub">DubIT — Bangladesh's First AI Video Dubbing Tool</div>
 </div>
 """, unsafe_allow_html=True)
+```
+
+**requirements.txt থেকে `nest_asyncio` এবং `elevenlabs` মুছে দিন। শুধু এটা রাখুন:**
+```
+openai-whisper
+gtts
+deep-translator
+streamlit
+ffmpeg-python
+edge-tts
