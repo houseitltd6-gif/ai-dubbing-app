@@ -450,4 +450,3 @@ st.markdown("""
     <div class="footer-sub">DubIT — Bangladesh's First AI Video Dubbing Tool</div>
 </div>
 """, unsafe_allow_html=True)
-```
