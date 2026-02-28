@@ -197,10 +197,11 @@ st.markdown("""
 # ---- FUNCTIONS ----
 def text_to_speech_eleven(text, voice_id, output_path):
     try:
-        audio_generator = client.generate(
+              audio_generator = client.text_to_speech.convert(
+            voice_id=voice_id,
             text=text,
-            voice=Voice(voice_id=voice_id),
-            model="eleven_multilingual_v2"
+            model_id="eleven_multilingual_v2",
+            output_format="mp3_44100_128"
         )
         with open(output_path, "wb") as f:
             for chunk in audio_generator:
