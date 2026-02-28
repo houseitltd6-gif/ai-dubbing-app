@@ -7,8 +7,8 @@ from elevenlabs import ElevenLabs
 client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
 VOICES = {
-    "👨 পুরুষ কণ্ঠ": "pNInz6obpgDQGcFmaJgB",
-    "👩 মহিলা কণ্ঠ": "EXAVITQu4vr4xnSDxMaL",
+    "👨 পুরুষ কণ্ঠ": "ErXwobaYiN019PkySvjV",  # Antoni - Male
+    "👩 মহিলা কণ্ঠ": "21m00Tcm4TlvDq8ikWAM",  # Rachel - Female
 }
 
 SOURCE_LANGUAGES = {
