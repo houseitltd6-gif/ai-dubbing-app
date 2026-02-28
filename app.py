@@ -3,6 +3,8 @@ import subprocess, os, whisper, asyncio
 from gtts import gTTS
 from deep_translator import GoogleTranslator
 import edge_tts
+import nest_asyncio
+nest_asyncio.apply()
 
 ALL_VOICES = {
     "👨 বাংলা পুরুষ — Pradeep":    "bn-BD-PradeepNeural",
@@ -206,11 +208,19 @@ async def tts_async(text, voice_name, output_path):
 
 def text_to_speech(text, voice_code, output_path):
     try:
-        asyncio.run(tts_async(text, voice_code, output_path))
-        return os.path.exists(output_path)
-    except:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(tts_async(text, voice_code, output_path))
+        loop.close()
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+            return True
         return False
-
+    except Exception as e:
+        try:
+            asyncio.run(tts_async(text, voice_code, output_path))
+            return os.path.exists(output_path)
+        except:
+            return False
 def text_to_speech_gtts(text, lang_code, output_path):
     try:
         tts = gTTS(text=text, lang=lang_code, slow=False)
