@@ -4,30 +4,38 @@ from gtts import gTTS
 from deep_translator import GoogleTranslator
 import edge_tts
 
-# ---- ২০টি কণ্ঠ ----
 ALL_VOICES = {
-    # পুরুষ কণ্ঠ
-    "👨 বাংলা পুরুষ (Pradeep)":     {"code": "bn-BD-PradeepNeural",    "lang": "bn"},
-    "👨 ইংরেজি পুরুষ (Guy)":         {"code": "en-US-GuyNeural",         "lang": "en"},
-    "👨 ইংরেজি পুরুষ (Davis)":       {"code": "en-US-DavisNeural",       "lang": "en"},
-    "👨 ইংরেজি পুরুষ (Tony)":        {"code": "en-US-TonyNeural",        "lang": "en"},
-    "👨 হিন্দি পুরুষ (Madhur)":      {"code": "hi-IN-MadhurNeural",      "lang": "hi"},
-    "👨 উর্দু পুরুষ (Asad)":          {"code": "ur-PK-AsadNeural",        "lang": "ur"},
-    "👨 টার্কিশ পুরুষ (Ahmet)":      {"code": "tr-TR-AhmetNeural",       "lang": "tr"},
-    "👨 আরবি পুরুষ (Hamed)":         {"code": "ar-SA-HamedNeural",       "lang": "ar"},
-    "👨 ফ্রেঞ্চ পুরুষ (Henri)":       {"code": "fr-FR-HenriNeural",       "lang": "fr"},
-    "👨 জার্মান পুরুষ (Conrad)":      {"code": "de-DE-ConradNeural",      "lang": "de"},
-    # মহিলা কণ্ঠ
-    "👩 বাংলা মহিলা (Nabanita)":     {"code": "bn-BD-NabanitaNeural",    "lang": "bn"},
-    "👩 ইংরেজি মহিলা (Jenny)":       {"code": "en-US-JennyNeural",       "lang": "en"},
-    "👩 ইংরেজি মহিলা (Aria)":        {"code": "en-US-AriaNeural",        "lang": "en"},
-    "👩 ইংরেজি মহিলা (Sara)":        {"code": "en-US-SaraNeural",        "lang": "en"},
-    "👩 হিন্দি মহিলা (Swara)":       {"code": "hi-IN-SwaraNeural",       "lang": "hi"},
-    "👩 উর্দু মহিলা (Uzma)":          {"code": "ur-PK-UzmaNeural",        "lang": "ur"},
-    "👩 টার্কিশ মহিলা (Emel)":       {"code": "tr-TR-EmelNeural",        "lang": "tr"},
-    "👩 আরবি মহিলা (Zariyah)":       {"code": "ar-SA-ZariyahNeural",     "lang": "ar"},
-    "👩 ফ্রেঞ্চ মহিলা (Denise)":      {"code": "fr-FR-DeniseNeural",      "lang": "fr"},
-    "👩 জার্মান মহিলা (Katja)":       {"code": "de-DE-KatjaNeural",       "lang": "de"},
+    "👨 বাংলা পুরুষ — Pradeep":    "bn-BD-PradeepNeural",
+    "👩 বাংলা মহিলা — Nabanita":   "bn-BD-NabanitaNeural",
+    "👨 ইংরেজি পুরুষ — Guy":        "en-US-GuyNeural",
+    "👨 ইংরেজি পুরুষ — Davis":      "en-US-DavisNeural",
+    "👨 ইংরেজি পুরুষ — Tony":       "en-US-TonyNeural",
+    "👩 ইংরেজি মহিলা — Jenny":      "en-US-JennyNeural",
+    "👩 ইংরেজি মহিলা — Aria":       "en-US-AriaNeural",
+    "👩 ইংরেজি মহিলা — Sara":       "en-US-SaraNeural",
+    "👨 হিন্দি পুরুষ — Madhur":     "hi-IN-MadhurNeural",
+    "👩 হিন্দি মহিলা — Swara":      "hi-IN-SwaraNeural",
+    "👨 উর্দু পুরুষ — Asad":         "ur-PK-AsadNeural",
+    "👩 উর্দু মহিলা — Uzma":         "ur-PK-UzmaNeural",
+    "👨 টার্কিশ পুরুষ — Ahmet":     "tr-TR-AhmetNeural",
+    "👩 টার্কিশ মহিলা — Emel":      "tr-TR-EmelNeural",
+    "👨 আরবি পুরুষ — Hamed":        "ar-SA-HamedNeural",
+    "👩 আরবি মহিলা — Zariyah":      "ar-SA-ZariyahNeural",
+    "👨 ফ্রেঞ্চ পুরুষ — Henri":      "fr-FR-HenriNeural",
+    "👩 ফ্রেঞ্চ মহিলা — Denise":     "fr-FR-DeniseNeural",
+    "👨 জার্মান পুরুষ — Conrad":     "de-DE-ConradNeural",
+    "👩 জার্মান মহিলা — Katja":      "de-DE-KatjaNeural",
+}
+
+PREVIEW_TEXT = {
+    "bn": "হ্যালো, আমি DubIT এর কণ্ঠ। আমাকে শুনুন।",
+    "en": "Hello, I am a DubIT voice. Listen to me.",
+    "hi": "नमस्ते, मैं DubIT की आवाज़ हूँ।",
+    "ur": "ہیلو، میں DubIT کی آواز ہوں۔",
+    "tr": "Merhaba, ben DubIT sesinim.",
+    "ar": "مرحبا، أنا صوت DubIT.",
+    "fr": "Bonjour, je suis la voix DubIT.",
+    "de": "Hallo, ich bin die DubIT Stimme.",
 }
 
 SOURCE_LANGUAGES = {
@@ -180,25 +188,6 @@ if "dubbing_done" not in st.session_state:
 if "selected_voice_key" not in st.session_state:
     st.session_state.selected_voice_key = ""
 
-# ---- HERO ----
-st.markdown("""
-<div class="hero">
-    <div class="hero-badge">🇧🇩 Bangladesh's First</div>
-    <h1>DubIT</h1>
-    <p>যেকোনো ভিডিও → ৬ ভাষায় AI ডাবিং | সম্পূর্ণ ফ্রি</p>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<div class="stats-row">
-    <div class="stat-card"><div class="stat-number">6+</div><div class="stat-label">ভাষা</div></div>
-    <div class="stat-card"><div class="stat-number">20</div><div class="stat-label">কণ্ঠ</div></div>
-    <div class="stat-card"><div class="stat-number">FREE</div><div class="stat-label">সম্পূর্ণ ফ্রি</div></div>
-    <div class="stat-card"><div class="stat-number">200MB</div><div class="stat-label">ফাইল লিমিট</div></div>
-</div>
-""", unsafe_allow_html=True)
-
-
 # ---- FUNCTIONS ----
 async def tts_async(text, voice_name, output_path):
     communicate = edge_tts.Communicate(text, voice_name)
@@ -207,7 +196,7 @@ async def tts_async(text, voice_name, output_path):
 def text_to_speech(text, voice_code, output_path):
     try:
         asyncio.run(tts_async(text, voice_code, output_path))
-        return True
+        return os.path.exists(output_path)
     except:
         return False
 
@@ -218,6 +207,16 @@ def text_to_speech_gtts(text, lang_code, output_path):
         return True
     except:
         return False
+
+def get_duration(path):
+    result = subprocess.run(
+        f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{path}"',
+        shell=True, capture_output=True, text=True
+    )
+    try:
+        return float(result.stdout.strip())
+    except:
+        return 0
 
 def translate_text(text, src_code, dest_code):
     if src_code == dest_code:
@@ -241,6 +240,27 @@ def translate_text(text, src_code, dest_code):
             parts.append(chunk)
     return ' '.join(parts)
 
+def get_voice_lang(voice_name):
+    code = voice_name[:2]
+    return code if code in PREVIEW_TEXT else "en"
+
+# ---- HERO ----
+st.markdown("""
+<div class="hero">
+    <div class="hero-badge">🇧🇩 Bangladesh's First</div>
+    <h1>DubIT</h1>
+    <p>যেকোনো ভিডিও → ৬ ভাষায় AI ডাবিং | সম্পূর্ণ ফ্রি</p>
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+<div class="stats-row">
+    <div class="stat-card"><div class="stat-number">6+</div><div class="stat-label">ভাষা</div></div>
+    <div class="stat-card"><div class="stat-number">20</div><div class="stat-label">কণ্ঠ</div></div>
+    <div class="stat-card"><div class="stat-number">FREE</div><div class="stat-label">সম্পূর্ণ ফ্রি</div></div>
+    <div class="stat-card"><div class="stat-number">200MB</div><div class="stat-label">ফাইল লিমিট</div></div>
+</div>
+""", unsafe_allow_html=True)
 
 # ---- DOWNLOAD PAGE ----
 if st.session_state.dubbing_done and st.session_state.dubbed_files:
@@ -294,40 +314,32 @@ else:
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="section-title">🎙️ কণ্ঠ বেছে নিন (২০টি অপশন)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">🎙️ কণ্ঠ বেছে নিন ও শুনুন</div>', unsafe_allow_html=True)
 
-    voice_names = list(ALL_VOICES.keys())
-    male_voices = [v for v in voice_names if "👨" in v]
-    female_voices = [v for v in voice_names if "👩" in v]
+    selected_voice = st.selectbox(
+        "",
+        list(ALL_VOICES.keys()),
+        label_visibility="collapsed",
+        key="voice_select"
+    )
 
-    col3, col4 = st.columns(2)
-    with col3:
-        st.markdown("**👨 পুরুষ কণ্ঠ**")
-        selected_male = st.selectbox(
-            "",
-            ["-- বেছে নিন --"] + male_voices,
-            label_visibility="collapsed",
-            key="male_voice"
-        )
-    with col4:
-        st.markdown("**👩 মহিলা কণ্ঠ**")
-        selected_female = st.selectbox(
-            "",
-            ["-- বেছে নিন --"] + female_voices,
-            label_visibility="collapsed",
-            key="female_voice"
-        )
+    # ---- VOICE PREVIEW ----
+    col_prev, col_space = st.columns([1, 2])
+    with col_prev:
+        if st.button("🔊 এই কণ্ঠ শুনুন"):
+            voice_code = ALL_VOICES[selected_voice]
+            lang_code = get_voice_lang(voice_code)
+            preview_text = PREVIEW_TEXT.get(lang_code, PREVIEW_TEXT["en"])
+            preview_path = "/tmp/preview_voice.mp3"
+            with st.spinner("কণ্ঠ তৈরি হচ্ছে..."):
+                success = text_to_speech(preview_text, voice_code, preview_path)
+                if success and os.path.exists(preview_path):
+                    with open(preview_path, "rb") as f:
+                        st.audio(f.read(), format="audio/mp3")
+                else:
+                    st.warning("Preview তৈরি করা যায়নি।")
 
-    # কোন কণ্ঠ selected তা নির্ধারণ
-    if selected_male != "-- বেছে নিন --":
-        final_voice = selected_male
-    elif selected_female != "-- বেছে নিন --":
-        final_voice = selected_female
-    else:
-        final_voice = "👨 ইংরেজি পুরুষ (Guy)"
-
-    st.info(f"✅ নির্বাচিত কণ্ঠ: **{final_voice}**")
-
+    st.info(f"✅ নির্বাচিত কণ্ঠ: **{selected_voice}**")
     st.markdown("<br>", unsafe_allow_html=True)
 
     if st.button("🚀 ডাবিং শুরু করুন"):
@@ -336,7 +348,7 @@ else:
         elif not selected_langs:
             st.error("⚠️ কমপক্ষে একটি টার্গেট ভাষা সিলেক্ট করুন!")
         else:
-            voice_code = ALL_VOICES[final_voice]["code"]
+            voice_code = ALL_VOICES[selected_voice]
             src_code = SOURCE_LANGUAGES[source_lang]
 
             video_path = "/tmp/input_video.mp4"
@@ -359,13 +371,16 @@ else:
             source_text = result["text"]
             progress.progress(40)
 
+            # Video duration নেওয়া
+            video_duration = get_duration(video_path)
+
             step = 60 // len(selected_langs)
             current_progress = 40
             dubbed_files = {}
 
             for lang_name in selected_langs:
                 dest_code = TARGET_LANGUAGES[lang_name]
-                status.info(f"⏳ {lang_name} — {final_voice} দিয়ে ডাবিং হচ্ছে...")
+                status.info(f"⏳ {lang_name} — {selected_voice} দিয়ে ডাবিং হচ্ছে...")
 
                 translated = translate_text(source_text, src_code, dest_code)
                 audio_path = f"/tmp/audio_{dest_code}.mp3"
@@ -374,10 +389,24 @@ else:
                 if not success:
                     text_to_speech_gtts(translated, dest_code, audio_path)
 
+                # Audio কে video র duration এ match করা
+                padded_audio = f"/tmp/audio_padded_{dest_code}.mp3"
+                audio_duration = get_duration(audio_path)
+
+                if audio_duration < video_duration:
+                    # Audio ছোট হলে silence দিয়ে pad করা
+                    subprocess.run(
+                        f'ffmpeg -i "{audio_path}" -af "apad=pad_dur={video_duration - audio_duration}" '
+                        f'-t {video_duration} "{padded_audio}" -y',
+                        shell=True, capture_output=True
+                    )
+                else:
+                    padded_audio = audio_path
+
                 output_path = f"/tmp/dubbed_{dest_code}.mp4"
                 subprocess.run(
-                    f'ffmpeg -i "{video_path}" -i "{audio_path}" '
-                    f'-c:v copy -map 0:v:0 -map 1:a:0 -shortest "{output_path}" -y',
+                    f'ffmpeg -i "{video_path}" -i "{padded_audio}" '
+                    f'-c:v copy -map 0:v:0 -map 1:a:0 -t {video_duration} "{output_path}" -y',
                     shell=True, capture_output=True
                 )
 
@@ -396,7 +425,7 @@ else:
             status.empty()
             st.session_state.dubbed_files = dubbed_files
             st.session_state.dubbing_done = True
-            st.session_state.selected_voice_key = final_voice
+            st.session_state.selected_voice_key = selected_voice
             st.rerun()
 
 # ---- FOOTER ----
