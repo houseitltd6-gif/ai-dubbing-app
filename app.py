@@ -2,23 +2,40 @@ import streamlit as st
 import subprocess, os, whisper
 from gtts import gTTS
 from deep_translator import GoogleTranslator
-from elevenlabs import ElevenLabs, VoiceSettings
+from elevenlabs import ElevenLabs, Voice
 
-# ElevenLabs Client
 client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
-# Voice IDs
 VOICES = {
     "👨 পুরুষ কণ্ঠ": "pNInz6obpgDQGcFmaJgB",
     "👩 মহিলা কণ্ঠ": "EXAVITQu4vr4xnSDxMaL",
 }
 
-LANGUAGES = {
-    "🇧🇩 বাংলা":   "bn",
-    "🇮🇳 হিন্দি":  "hi",
-    "🇵🇰 উর্দু":   "ur",
-    "🇹🇷 টার্কিশ": "tr",
-    "🇸🇦 আরবি":    "ar",
+SOURCE_LANGUAGES = {
+    "🇧🇩 বাংলা":    "bn",
+    "🇺🇸 ইংরেজি":  "en",
+    "🇮🇳 হিন্দি":   "hi",
+    "🇵🇰 উর্দু":    "ur",
+    "🇹🇷 টার্কিশ":  "tr",
+    "🇸🇦 আরবি":     "ar",
+}
+
+TARGET_LANGUAGES = {
+    "🇧🇩 বাংলা":    "bn",
+    "🇺🇸 ইংরেজি":  "en",
+    "🇮🇳 হিন্দি":   "hi",
+    "🇵🇰 উর্দু":    "ur",
+    "🇹🇷 টার্কিশ":  "tr",
+    "🇸🇦 আরবি":     "ar",
+}
+
+WHISPER_LANG = {
+    "bn": "bn",
+    "en": "en",
+    "hi": "hi",
+    "ur": "ur",
+    "tr": "tr",
+    "ar": "ar",
 }
 
 st.set_page_config(
@@ -103,6 +120,11 @@ st.markdown("""
     border-radius: 12px !important;
     padding: 0.8rem !important;
 }
+.stSelectbox > div {
+    background: #0f0f1f !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+}
 .stButton > button {
     background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
     color: white !important;
@@ -126,17 +148,6 @@ st.markdown("""
     font-weight: 600 !important;
     width: 100% !important;
     margin-bottom: 0.5rem !important;
-}
-.new-video-btn > button {
-    background: linear-gradient(135deg, #1e1e3a, #2d2d5a) !important;
-    color: #a78bfa !important;
-    border: 1px solid rgba(139, 92, 246, 0.5) !important;
-    border-radius: 14px !important;
-    padding: 1rem 2rem !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    width: 100% !important;
-    margin-top: 1rem !important;
 }
 .footer {
     text-align: center;
@@ -162,20 +173,21 @@ if "dubbed_files" not in st.session_state:
     st.session_state.dubbed_files = {}
 if "dubbing_done" not in st.session_state:
     st.session_state.dubbing_done = False
+if "selected_voice_key" not in st.session_state:
+    st.session_state.selected_voice_key = "👨 পুরুষ কণ্ঠ"
 
 # ---- HERO ----
 st.markdown("""
 <div class="hero">
     <div class="hero-badge">🇧🇩 Bangladesh's First</div>
     <h1>DubIT</h1>
-    <p>ইংরেজি ভিডিও → ৫ ভাষায় AI ডাবিং | সম্পূর্ণ ফ্রি</p>
+    <p>যেকোনো ভিডিও → ৬ ভাষায় AI ডাবিং | সম্পূর্ণ ফ্রি</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ---- STATS ----
 st.markdown("""
 <div class="stats-row">
-    <div class="stat-card"><div class="stat-number">5+</div><div class="stat-label">ভাষা</div></div>
+    <div class="stat-card"><div class="stat-number">6+</div><div class="stat-label">ভাষা</div></div>
     <div class="stat-card"><div class="stat-number">AI</div><div class="stat-label">পাওয়ার্ড</div></div>
     <div class="stat-card"><div class="stat-number">FREE</div><div class="stat-label">সম্পূর্ণ ফ্রি</div></div>
     <div class="stat-card"><div class="stat-number">200MB</div><div class="stat-label">ফাইল লিমিট</div></div>
@@ -183,16 +195,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---- FUNCTIONS ----
-def text_to_speech(text, lang_code, output_path, voice_id):
+def text_to_speech_eleven(text, voice_id, output_path):
     try:
-        audio_generator = client.text_to_speech.convert(
+        audio_generator = client.generate(
             text=text,
-            voice_id=voice_id,
-            model_id="eleven_multilingual_v2",
-            voice_settings=VoiceSettings(
-                stability=0.5,
-                similarity_boost=0.75,
-            )
+            voice=Voice(voice_id=voice_id),
+            model="eleven_multilingual_v2"
         )
         with open(output_path, "wb") as f:
             for chunk in audio_generator:
@@ -200,11 +208,19 @@ def text_to_speech(text, lang_code, output_path, voice_id):
                     f.write(chunk)
         return True
     except Exception as e:
-        tts = gTTS(text=text, lang=lang_code, slow=False)
-        tts.save(output_path)
         return False
 
-def translate_text(text, lang_code):
+def text_to_speech_gtts(text, lang_code, output_path):
+    try:
+        tts = gTTS(text=text, lang=lang_code, slow=False)
+        tts.save(output_path)
+        return True
+    except:
+        return False
+
+def translate_text(text, src_code, dest_code):
+    if src_code == dest_code:
+        return text
     sentences = text.split('. ')
     chunks, current = [], ""
     for s in sentences:
@@ -218,7 +234,7 @@ def translate_text(text, lang_code):
     parts = []
     for chunk in chunks:
         try:
-            translated = GoogleTranslator(source='en', target=lang_code).translate(chunk)
+            translated = GoogleTranslator(source=src_code, target=dest_code).translate(chunk)
             parts.append(translated if translated else chunk)
         except:
             parts.append(chunk)
@@ -226,31 +242,29 @@ def translate_text(text, lang_code):
 
 # ---- DOWNLOAD PAGE ----
 if st.session_state.dubbing_done and st.session_state.dubbed_files:
-    st.success("🎉 ডাবিং সম্পন্ন! ভিডিওগুলো ডাউনলোড করুন।")
+    st.success("🎉 ডাবিং সম্পন্ন!")
+    voice_used = st.session_state.get("selected_voice_key", "")
+    st.info(f"🎙️ ব্যবহৃত কণ্ঠ: {voice_used}")
     st.markdown('<div class="section-title">⬇️ ডাউনলোড করুন</div>', unsafe_allow_html=True)
 
-    for lang_name, file_path in st.session_state.dubbed_files.items():
-        if os.path.exists(file_path):
-            with open(file_path, "rb") as f:
-                video_bytes = f.read()
-            lang_code = LANGUAGES.get(lang_name, "xx")
-            st.download_button(
-                label=f"⬇️ {lang_name} ভিডিও ডাউনলোড করুন",
-                data=video_bytes,
-                file_name=f"DubIT_{lang_code}.mp4",
-                mime="video/mp4",
-                key=f"dl_{lang_name}"
-            )
+    for lang_name, data in st.session_state.dubbed_files.items():
+        file_bytes = data["bytes"]
+        file_name = data["filename"]
+        st.download_button(
+            label=f"⬇️ {lang_name} ভিডিও ডাউনলোড করুন",
+            data=file_bytes,
+            file_name=file_name,
+            mime="video/mp4",
+            key=f"dl_{lang_name}"
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="new-video-btn">', unsafe_allow_html=True)
     if st.button("🔄 নতুন ভিডিও ডাব করুন"):
         st.session_state.dubbed_files = {}
         st.session_state.dubbing_done = False
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
-# ---- UPLOAD PAGE ----
+# ---- MAIN PAGE ----
 else:
     st.markdown('<div class="section-title">📁 ভিডিও আপলোড করুন</div>', unsafe_allow_html=True)
     uploaded_file = st.file_uploader(
@@ -260,19 +274,31 @@ else:
     )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="section-title">🌍 ভাষা সিলেক্ট করুন</div>', unsafe_allow_html=True)
-    selected_langs = st.multiselect(
-        "",
-        list(LANGUAGES.keys()),
-        default=["🇧🇩 বাংলা"],
-        label_visibility="collapsed"
-    )
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<div class="section-title">📥 মূল ভাষা</div>', unsafe_allow_html=True)
+        source_lang = st.selectbox(
+            "",
+            list(SOURCE_LANGUAGES.keys()),
+            index=1,
+            label_visibility="collapsed"
+        )
+    with col2:
+        st.markdown('<div class="section-title">📤 টার্গেট ভাষা</div>', unsafe_allow_html=True)
+        target_options = [l for l in TARGET_LANGUAGES.keys() if l != source_lang]
+        selected_langs = st.multiselect(
+            "",
+            target_options,
+            default=[target_options[0]] if target_options else [],
+            label_visibility="collapsed"
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="section-title">🎙️ কণ্ঠ সিলেক্ট করুন</div>', unsafe_allow_html=True)
     selected_voice = st.radio(
         "",
         list(VOICES.keys()),
+        index=0,
         horizontal=True,
         label_visibility="collapsed"
     )
@@ -283,9 +309,10 @@ else:
         if not uploaded_file:
             st.error("⚠️ আগে ভিডিও আপলোড করুন!")
         elif not selected_langs:
-            st.error("⚠️ কমপক্ষে একটি ভাষা সিলেক্ট করুন!")
+            st.error("⚠️ কমপক্ষে একটি টার্গেট ভাষা সিলেক্ট করুন!")
         else:
             voice_id = VOICES[selected_voice]
+            src_code = SOURCE_LANGUAGES[source_lang]
 
             video_path = "/tmp/input_video.mp4"
             with open(video_path, "wb") as f:
@@ -296,15 +323,18 @@ else:
 
             status.info("⏳ অডিও বের হচ্ছে...")
             subprocess.run(
-                f'ffmpeg -i "{video_path}" -q:a 0 -map a /tmp/audio.mp3 -y',
+                f'ffmpeg -i "{video_path}" -q:a 0 -map a /tmp/audio_src.mp3 -y',
                 shell=True, capture_output=True
             )
             progress.progress(20)
 
             status.info("⏳ AI টেক্সট বের করছে...")
             model = whisper.load_model("base")
-            result = model.transcribe("/tmp/audio.mp3", language="en")
-            english_text = result["text"]
+            result = model.transcribe(
+                "/tmp/audio_src.mp3",
+                language=WHISPER_LANG.get(src_code, None)
+            )
+            source_text = result["text"]
             progress.progress(40)
 
             step = 60 // len(selected_langs)
@@ -312,14 +342,17 @@ else:
             dubbed_files = {}
 
             for lang_name in selected_langs:
-                lang_code = LANGUAGES[lang_name]
+                dest_code = TARGET_LANGUAGES[lang_name]
                 status.info(f"⏳ {lang_name} ডাবিং হচ্ছে...")
 
-                translated = translate_text(english_text, lang_code)
-                audio_path = f"/tmp/audio_{lang_code}.mp3"
-                text_to_speech(translated, lang_code, audio_path, voice_id)
+                translated = translate_text(source_text, src_code, dest_code)
+                audio_path = f"/tmp/audio_{dest_code}.mp3"
 
-                output_path = f"/tmp/dubbed_{lang_code}.mp4"
+                success = text_to_speech_eleven(translated, voice_id, audio_path)
+                if not success:
+                    text_to_speech_gtts(translated, dest_code, audio_path)
+
+                output_path = f"/tmp/dubbed_{dest_code}.mp4"
                 subprocess.run(
                     f'ffmpeg -i "{video_path}" -i "{audio_path}" '
                     f'-c:v copy -map 0:v:0 -map 1:a:0 -shortest "{output_path}" -y',
@@ -330,13 +363,19 @@ else:
                 progress.progress(min(current_progress, 100))
 
                 if os.path.exists(output_path):
-                    dubbed_files[lang_name] = output_path
+                    with open(output_path, "rb") as f:
+                        file_bytes = f.read()
+                    dubbed_files[lang_name] = {
+                        "bytes": file_bytes,
+                        "filename": f"DubIT_{dest_code}.mp4"
+                    }
 
             progress.progress(100)
             status.empty()
 
             st.session_state.dubbed_files = dubbed_files
             st.session_state.dubbing_done = True
+            st.session_state.selected_voice_key = selected_voice
             st.rerun()
 
 # ---- FOOTER ----
