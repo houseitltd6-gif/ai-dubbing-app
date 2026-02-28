@@ -451,12 +451,3 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 ```
-
-**requirements.txt থেকে `nest_asyncio` এবং `elevenlabs` মুছে দিন। শুধু এটা রাখুন:**
-```
-openai-whisper
-gtts
-deep-translator
-streamlit
-ffmpeg-python
-edge-tts
