@@ -1,14 +1,26 @@
 import streamlit as st
-import subprocess, os, whisper
+import subprocess, os, whisper, asyncio
 from gtts import gTTS
 from deep_translator import GoogleTranslator
-from elevenlabs import ElevenLabs
-
-client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
+import edge_tts
 
 VOICES = {
-    "👨 পুরুষ কণ্ঠ": "ErXwobaYiN019PkySvjV",  # Antoni - Male
-    "👩 মহিলা কণ্ঠ": "21m00Tcm4TlvDq8ikWAM",  # Rachel - Female
+    "👨 পুরুষ কণ্ঠ": {
+        "bn": "bn-BD-PradeepNeural",
+        "en": "en-US-GuyNeural",
+        "hi": "hi-IN-MadhurNeural",
+        "ur": "ur-PK-AsadNeural",
+        "tr": "tr-TR-AhmetNeural",
+        "ar": "ar-SA-HamedNeural",
+    },
+    "👩 মহিলা কণ্ঠ": {
+        "bn": "bn-BD-NabanitaNeural",
+        "en": "en-US-JennyNeural",
+        "hi": "hi-IN-SwaraNeural",
+        "ur": "ur-PK-UzmaNeural",
+        "tr": "tr-TR-EmelNeural",
+        "ar": "ar-SA-ZariyahNeural",
+    },
 }
 
 SOURCE_LANGUAGES = {
@@ -187,23 +199,16 @@ st.markdown("""
 
 
 # ---- FUNCTIONS ----
-def text_to_speech_eleven(text, voice_id, output_path):
+async def tts_async(text, voice_name, output_path):
+    communicate = edge_tts.Communicate(text, voice_name)
+    await communicate.save(output_path)
+
+def text_to_speech(text, voice_name, output_path):
     try:
-        audio_generator = client.text_to_speech.convert(
-            voice_id=voice_id,
-            text=text,
-            model_id="eleven_multilingual_v2",
-            output_format="mp3_44100_128"
-        )
-        with open(output_path, "wb") as f:
-            for chunk in audio_generator:
-                if chunk:
-                    f.write(chunk)
+        asyncio.run(tts_async(text, voice_name, output_path))
         return True
     except Exception as e:
-        st.warning(f"ElevenLabs error: {e}")
         return False
-
 
 def text_to_speech_gtts(text, lang_code, output_path):
     try:
@@ -212,7 +217,6 @@ def text_to_speech_gtts(text, lang_code, output_path):
         return True
     except:
         return False
-
 
 def translate_text(text, src_code, dest_code):
     if src_code == dest_code:
@@ -306,7 +310,7 @@ else:
         elif not selected_langs:
             st.error("⚠️ কমপক্ষে একটি টার্গেট ভাষা সিলেক্ট করুন!")
         else:
-            voice_id = VOICES[selected_voice]
+            voice_map = VOICES[selected_voice]
             src_code = SOURCE_LANGUAGES[source_lang]
 
             video_path = "/tmp/input_video.mp4"
@@ -340,7 +344,8 @@ else:
                 translated = translate_text(source_text, src_code, dest_code)
                 audio_path = f"/tmp/audio_{dest_code}.mp3"
 
-                success = text_to_speech_eleven(translated, voice_id, audio_path)
+                voice_name = voice_map.get(dest_code, voice_map["en"])
+                success = text_to_speech(translated, voice_name, audio_path)
                 if not success:
                     text_to_speech_gtts(translated, dest_code, audio_path)
 
