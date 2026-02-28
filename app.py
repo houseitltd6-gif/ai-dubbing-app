@@ -4,41 +4,48 @@ from gtts import gTTS
 from deep_translator import GoogleTranslator
 import edge_tts
 
-VOICES = {
-    "👨 পুরুষ কণ্ঠ": {
-        "bn": "bn-BD-PradeepNeural",
-        "en": "en-US-GuyNeural",
-        "hi": "hi-IN-MadhurNeural",
-        "ur": "ur-PK-AsadNeural",
-        "tr": "tr-TR-AhmetNeural",
-        "ar": "ar-SA-HamedNeural",
-    },
-    "👩 মহিলা কণ্ঠ": {
-        "bn": "bn-BD-NabanitaNeural",
-        "en": "en-US-JennyNeural",
-        "hi": "hi-IN-SwaraNeural",
-        "ur": "ur-PK-UzmaNeural",
-        "tr": "tr-TR-EmelNeural",
-        "ar": "ar-SA-ZariyahNeural",
-    },
+# ---- ২০টি কণ্ঠ ----
+ALL_VOICES = {
+    # পুরুষ কণ্ঠ
+    "👨 বাংলা পুরুষ (Pradeep)":     {"code": "bn-BD-PradeepNeural",    "lang": "bn"},
+    "👨 ইংরেজি পুরুষ (Guy)":         {"code": "en-US-GuyNeural",         "lang": "en"},
+    "👨 ইংরেজি পুরুষ (Davis)":       {"code": "en-US-DavisNeural",       "lang": "en"},
+    "👨 ইংরেজি পুরুষ (Tony)":        {"code": "en-US-TonyNeural",        "lang": "en"},
+    "👨 হিন্দি পুরুষ (Madhur)":      {"code": "hi-IN-MadhurNeural",      "lang": "hi"},
+    "👨 উর্দু পুরুষ (Asad)":          {"code": "ur-PK-AsadNeural",        "lang": "ur"},
+    "👨 টার্কিশ পুরুষ (Ahmet)":      {"code": "tr-TR-AhmetNeural",       "lang": "tr"},
+    "👨 আরবি পুরুষ (Hamed)":         {"code": "ar-SA-HamedNeural",       "lang": "ar"},
+    "👨 ফ্রেঞ্চ পুরুষ (Henri)":       {"code": "fr-FR-HenriNeural",       "lang": "fr"},
+    "👨 জার্মান পুরুষ (Conrad)":      {"code": "de-DE-ConradNeural",      "lang": "de"},
+    # মহিলা কণ্ঠ
+    "👩 বাংলা মহিলা (Nabanita)":     {"code": "bn-BD-NabanitaNeural",    "lang": "bn"},
+    "👩 ইংরেজি মহিলা (Jenny)":       {"code": "en-US-JennyNeural",       "lang": "en"},
+    "👩 ইংরেজি মহিলা (Aria)":        {"code": "en-US-AriaNeural",        "lang": "en"},
+    "👩 ইংরেজি মহিলা (Sara)":        {"code": "en-US-SaraNeural",        "lang": "en"},
+    "👩 হিন্দি মহিলা (Swara)":       {"code": "hi-IN-SwaraNeural",       "lang": "hi"},
+    "👩 উর্দু মহিলা (Uzma)":          {"code": "ur-PK-UzmaNeural",        "lang": "ur"},
+    "👩 টার্কিশ মহিলা (Emel)":       {"code": "tr-TR-EmelNeural",        "lang": "tr"},
+    "👩 আরবি মহিলা (Zariyah)":       {"code": "ar-SA-ZariyahNeural",     "lang": "ar"},
+    "👩 ফ্রেঞ্চ মহিলা (Denise)":      {"code": "fr-FR-DeniseNeural",      "lang": "fr"},
+    "👩 জার্মান মহিলা (Katja)":       {"code": "de-DE-KatjaNeural",       "lang": "de"},
 }
 
 SOURCE_LANGUAGES = {
-    "🇧🇩 বাংলা": "bn",
+    "🇧🇩 বাংলা":   "bn",
     "🇺🇸 ইংরেজি": "en",
-    "🇮🇳 হিন্দি": "hi",
-    "🇵🇰 উর্দু": "ur",
+    "🇮🇳 হিন্দি":  "hi",
+    "🇵🇰 উর্দু":   "ur",
     "🇹🇷 টার্কিশ": "tr",
-    "🇸🇦 আরবি": "ar",
+    "🇸🇦 আরবি":    "ar",
 }
 
 TARGET_LANGUAGES = {
-    "🇧🇩 বাংলা": "bn",
+    "🇧🇩 বাংলা":   "bn",
     "🇺🇸 ইংরেজি": "en",
-    "🇮🇳 হিন্দি": "hi",
-    "🇵🇰 উর্দু": "ur",
+    "🇮🇳 হিন্দি":  "hi",
+    "🇵🇰 উর্দু":   "ur",
     "🇹🇷 টার্কিশ": "tr",
-    "🇸🇦 আরবি": "ar",
+    "🇸🇦 আরবি":    "ar",
 }
 
 st.set_page_config(
@@ -117,13 +124,7 @@ st.markdown("""
     border: 1px solid rgba(139, 92, 246, 0.3) !important;
     border-radius: 12px !important;
 }
-.stRadio > div {
-    background: #0f0f1f !important;
-    border: 1px solid rgba(139, 92, 246, 0.3) !important;
-    border-radius: 12px !important;
-    padding: 0.8rem !important;
-}
-.stSelectbox > div {
+.stSelectbox > div > div {
     background: #0f0f1f !important;
     border: 1px solid rgba(139, 92, 246, 0.3) !important;
     border-radius: 12px !important;
@@ -177,7 +178,7 @@ if "dubbed_files" not in st.session_state:
 if "dubbing_done" not in st.session_state:
     st.session_state.dubbing_done = False
 if "selected_voice_key" not in st.session_state:
-    st.session_state.selected_voice_key = "👨 পুরুষ কণ্ঠ"
+    st.session_state.selected_voice_key = ""
 
 # ---- HERO ----
 st.markdown("""
@@ -191,7 +192,7 @@ st.markdown("""
 st.markdown("""
 <div class="stats-row">
     <div class="stat-card"><div class="stat-number">6+</div><div class="stat-label">ভাষা</div></div>
-    <div class="stat-card"><div class="stat-number">AI</div><div class="stat-label">পাওয়ার্ড</div></div>
+    <div class="stat-card"><div class="stat-number">20</div><div class="stat-label">কণ্ঠ</div></div>
     <div class="stat-card"><div class="stat-number">FREE</div><div class="stat-label">সম্পূর্ণ ফ্রি</div></div>
     <div class="stat-card"><div class="stat-number">200MB</div><div class="stat-label">ফাইল লিমিট</div></div>
 </div>
@@ -203,11 +204,11 @@ async def tts_async(text, voice_name, output_path):
     communicate = edge_tts.Communicate(text, voice_name)
     await communicate.save(output_path)
 
-def text_to_speech(text, voice_name, output_path):
+def text_to_speech(text, voice_code, output_path):
     try:
-        asyncio.run(tts_async(text, voice_name, output_path))
+        asyncio.run(tts_async(text, voice_code, output_path))
         return True
-    except Exception as e:
+    except:
         return False
 
 def text_to_speech_gtts(text, lang_code, output_path):
@@ -244,8 +245,7 @@ def translate_text(text, src_code, dest_code):
 # ---- DOWNLOAD PAGE ----
 if st.session_state.dubbing_done and st.session_state.dubbed_files:
     st.success("🎉 ডাবিং সম্পন্ন!")
-    voice_used = st.session_state.get("selected_voice_key", "")
-    st.info(f"🎙️ ব্যবহৃত কণ্ঠ: {voice_used}")
+    st.info(f"🎙️ ব্যবহৃত কণ্ঠ: {st.session_state.selected_voice_key}")
     st.markdown('<div class="section-title">⬇️ ডাউনলোড করুন</div>', unsafe_allow_html=True)
 
     for lang_name, data in st.session_state.dubbed_files.items():
@@ -280,7 +280,8 @@ else:
             "",
             list(SOURCE_LANGUAGES.keys()),
             index=1,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="src_lang"
         )
     with col2:
         st.markdown('<div class="section-title">📤 টার্গেট ভাষা</div>', unsafe_allow_html=True)
@@ -293,14 +294,39 @@ else:
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="section-title">🎙️ কণ্ঠ সিলেক্ট করুন</div>', unsafe_allow_html=True)
-    selected_voice = st.radio(
-        "",
-        list(VOICES.keys()),
-        index=0,
-        horizontal=True,
-        label_visibility="collapsed"
-    )
+    st.markdown('<div class="section-title">🎙️ কণ্ঠ বেছে নিন (২০টি অপশন)</div>', unsafe_allow_html=True)
+
+    voice_names = list(ALL_VOICES.keys())
+    male_voices = [v for v in voice_names if "👨" in v]
+    female_voices = [v for v in voice_names if "👩" in v]
+
+    col3, col4 = st.columns(2)
+    with col3:
+        st.markdown("**👨 পুরুষ কণ্ঠ**")
+        selected_male = st.selectbox(
+            "",
+            ["-- বেছে নিন --"] + male_voices,
+            label_visibility="collapsed",
+            key="male_voice"
+        )
+    with col4:
+        st.markdown("**👩 মহিলা কণ্ঠ**")
+        selected_female = st.selectbox(
+            "",
+            ["-- বেছে নিন --"] + female_voices,
+            label_visibility="collapsed",
+            key="female_voice"
+        )
+
+    # কোন কণ্ঠ selected তা নির্ধারণ
+    if selected_male != "-- বেছে নিন --":
+        final_voice = selected_male
+    elif selected_female != "-- বেছে নিন --":
+        final_voice = selected_female
+    else:
+        final_voice = "👨 ইংরেজি পুরুষ (Guy)"
+
+    st.info(f"✅ নির্বাচিত কণ্ঠ: **{final_voice}**")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -310,7 +336,7 @@ else:
         elif not selected_langs:
             st.error("⚠️ কমপক্ষে একটি টার্গেট ভাষা সিলেক্ট করুন!")
         else:
-            voice_map = VOICES[selected_voice]
+            voice_code = ALL_VOICES[final_voice]["code"]
             src_code = SOURCE_LANGUAGES[source_lang]
 
             video_path = "/tmp/input_video.mp4"
@@ -339,13 +365,12 @@ else:
 
             for lang_name in selected_langs:
                 dest_code = TARGET_LANGUAGES[lang_name]
-                status.info(f"⏳ {lang_name} ডাবিং হচ্ছে...")
+                status.info(f"⏳ {lang_name} — {final_voice} দিয়ে ডাবিং হচ্ছে...")
 
                 translated = translate_text(source_text, src_code, dest_code)
                 audio_path = f"/tmp/audio_{dest_code}.mp3"
 
-                voice_name = voice_map.get(dest_code, voice_map["en"])
-                success = text_to_speech(translated, voice_name, audio_path)
+                success = text_to_speech(translated, voice_code, audio_path)
                 if not success:
                     text_to_speech_gtts(translated, dest_code, audio_path)
 
@@ -371,7 +396,7 @@ else:
             status.empty()
             st.session_state.dubbed_files = dubbed_files
             st.session_state.dubbing_done = True
-            st.session_state.selected_voice_key = selected_voice
+            st.session_state.selected_voice_key = final_voice
             st.rerun()
 
 # ---- FOOTER ----
