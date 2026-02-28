@@ -2,7 +2,7 @@ import streamlit as st
 import subprocess, os, whisper
 from gtts import gTTS
 from deep_translator import GoogleTranslator
-from elevenlabs import ElevenLabs, Voice
+from elevenlabs import ElevenLabs
 
 client = ElevenLabs(api_key=st.secrets["ELEVENLABS_API_KEY"])
 
@@ -12,30 +12,21 @@ VOICES = {
 }
 
 SOURCE_LANGUAGES = {
-    "🇧🇩 বাংলা":    "bn",
-    "🇺🇸 ইংরেজি":  "en",
-    "🇮🇳 হিন্দি":   "hi",
-    "🇵🇰 উর্দু":    "ur",
-    "🇹🇷 টার্কিশ":  "tr",
-    "🇸🇦 আরবি":     "ar",
+    "🇧🇩 বাংলা": "bn",
+    "🇺🇸 ইংরেজি": "en",
+    "🇮🇳 হিন্দি": "hi",
+    "🇵🇰 উর্দু": "ur",
+    "🇹🇷 টার্কিশ": "tr",
+    "🇸🇦 আরবি": "ar",
 }
 
 TARGET_LANGUAGES = {
-    "🇧🇩 বাংলা":    "bn",
-    "🇺🇸 ইংরেজি":  "en",
-    "🇮🇳 হিন্দি":   "hi",
-    "🇵🇰 উর্দু":    "ur",
-    "🇹🇷 টার্কিশ":  "tr",
-    "🇸🇦 আরবি":     "ar",
-}
-
-WHISPER_LANG = {
-    "bn": "bn",
-    "en": "en",
-    "hi": "hi",
-    "ur": "ur",
-    "tr": "tr",
-    "ar": "ar",
+    "🇧🇩 বাংলা": "bn",
+    "🇺🇸 ইংরেজি": "en",
+    "🇮🇳 হিন্দি": "hi",
+    "🇵🇰 উর্দু": "ur",
+    "🇹🇷 টার্কিশ": "tr",
+    "🇸🇦 আরবি": "ar",
 }
 
 st.set_page_config(
@@ -194,10 +185,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+
 # ---- FUNCTIONS ----
 def text_to_speech_eleven(text, voice_id, output_path):
     try:
-              audio_generator = client.text_to_speech.convert(
+        audio_generator = client.text_to_speech.convert(
             voice_id=voice_id,
             text=text,
             model_id="eleven_multilingual_v2",
@@ -209,7 +201,9 @@ def text_to_speech_eleven(text, voice_id, output_path):
                     f.write(chunk)
         return True
     except Exception as e:
+        st.warning(f"ElevenLabs error: {e}")
         return False
+
 
 def text_to_speech_gtts(text, lang_code, output_path):
     try:
@@ -218,6 +212,7 @@ def text_to_speech_gtts(text, lang_code, output_path):
         return True
     except:
         return False
+
 
 def translate_text(text, src_code, dest_code):
     if src_code == dest_code:
@@ -241,6 +236,7 @@ def translate_text(text, src_code, dest_code):
             parts.append(chunk)
     return ' '.join(parts)
 
+
 # ---- DOWNLOAD PAGE ----
 if st.session_state.dubbing_done and st.session_state.dubbed_files:
     st.success("🎉 ডাবিং সম্পন্ন!")
@@ -249,12 +245,10 @@ if st.session_state.dubbing_done and st.session_state.dubbed_files:
     st.markdown('<div class="section-title">⬇️ ডাউনলোড করুন</div>', unsafe_allow_html=True)
 
     for lang_name, data in st.session_state.dubbed_files.items():
-        file_bytes = data["bytes"]
-        file_name = data["filename"]
         st.download_button(
             label=f"⬇️ {lang_name} ভিডিও ডাউনলোড করুন",
-            data=file_bytes,
-            file_name=file_name,
+            data=data["bytes"],
+            file_name=data["filename"],
             mime="video/mp4",
             key=f"dl_{lang_name}"
         )
@@ -331,10 +325,7 @@ else:
 
             status.info("⏳ AI টেক্সট বের করছে...")
             model = whisper.load_model("base")
-            result = model.transcribe(
-                "/tmp/audio_src.mp3",
-                language=WHISPER_LANG.get(src_code, None)
-            )
+            result = model.transcribe("/tmp/audio_src.mp3", language=src_code)
             source_text = result["text"]
             progress.progress(40)
 
@@ -373,7 +364,6 @@ else:
 
             progress.progress(100)
             status.empty()
-
             st.session_state.dubbed_files = dubbed_files
             st.session_state.dubbing_done = True
             st.session_state.selected_voice_key = selected_voice
