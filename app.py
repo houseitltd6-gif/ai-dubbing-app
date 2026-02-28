@@ -38,6 +38,17 @@ PREVIEW_TEXT = {
     "de": "Hallo, ich bin die DubIT Stimme.",
 }
 
+LANG_DEFAULT_VOICE = {
+    "bn": "bn-BD-PradeepNeural",
+    "en": "en-US-GuyNeural",
+    "hi": "hi-IN-MadhurNeural",
+    "ur": "ur-PK-AsadNeural",
+    "tr": "tr-TR-AhmetNeural",
+    "ar": "ar-SA-HamedNeural",
+    "fr": "fr-FR-HenriNeural",
+    "de": "de-DE-ConradNeural",
+}
+
 SOURCE_LANGUAGES = {
     "🇧🇩 বাংলা":   "bn",
     "🇺🇸 ইংরেজি": "en",
@@ -210,13 +221,20 @@ def text_to_speech_gtts(text, lang_code, output_path):
 
 def get_duration(path):
     result = subprocess.run(
-        f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{path}"',
+        f'ffprobe -v error -show_entries format=duration '
+        f'-of default=noprint_wrappers=1:nokey=1 "{path}"',
         shell=True, capture_output=True, text=True
     )
     try:
         return float(result.stdout.strip())
     except:
         return 0
+
+def get_compatible_voice(selected_voice_code, dest_lang_code):
+    voice_lang = selected_voice_code[:2]
+    if voice_lang == dest_lang_code:
+        return selected_voice_code
+    return LANG_DEFAULT_VOICE.get(dest_lang_code, "en-US-GuyNeural")
 
 def translate_text(text, src_code, dest_code):
     if src_code == dest_code:
@@ -240,8 +258,8 @@ def translate_text(text, src_code, dest_code):
             parts.append(chunk)
     return ' '.join(parts)
 
-def get_voice_lang(voice_name):
-    code = voice_name[:2]
+def get_voice_lang(voice_code):
+    code = voice_code[:2]
     return code if code in PREVIEW_TEXT else "en"
 
 # ---- HERO ----
@@ -323,7 +341,6 @@ else:
         key="voice_select"
     )
 
-    # ---- VOICE PREVIEW ----
     col_prev, col_space = st.columns([1, 2])
     with col_prev:
         if st.button("🔊 এই কণ্ঠ শুনুন"):
@@ -371,7 +388,6 @@ else:
             source_text = result["text"]
             progress.progress(40)
 
-            # Video duration নেওয়া
             video_duration = get_duration(video_path)
 
             step = 60 // len(selected_langs)
@@ -380,23 +396,23 @@ else:
 
             for lang_name in selected_langs:
                 dest_code = TARGET_LANGUAGES[lang_name]
-                status.info(f"⏳ {lang_name} — {selected_voice} দিয়ে ডাবিং হচ্ছে...")
+                status.info(f"⏳ {lang_name} ডাবিং হচ্ছে...")
 
                 translated = translate_text(source_text, src_code, dest_code)
                 audio_path = f"/tmp/audio_{dest_code}.mp3"
 
-                success = text_to_speech(translated, voice_code, audio_path)
+                compatible_voice = get_compatible_voice(voice_code, dest_code)
+                success = text_to_speech(translated, compatible_voice, audio_path)
                 if not success:
                     text_to_speech_gtts(translated, dest_code, audio_path)
 
-                # Audio কে video র duration এ match করা
                 padded_audio = f"/tmp/audio_padded_{dest_code}.mp3"
                 audio_duration = get_duration(audio_path)
 
-                if audio_duration < video_duration:
-                    # Audio ছোট হলে silence দিয়ে pad করা
+                if audio_duration > 0 and audio_duration < video_duration:
                     subprocess.run(
-                        f'ffmpeg -i "{audio_path}" -af "apad=pad_dur={video_duration - audio_duration}" '
+                        f'ffmpeg -i "{audio_path}" '
+                        f'-af "apad=pad_dur={video_duration - audio_duration}" '
                         f'-t {video_duration} "{padded_audio}" -y',
                         shell=True, capture_output=True
                     )
@@ -406,7 +422,8 @@ else:
                 output_path = f"/tmp/dubbed_{dest_code}.mp4"
                 subprocess.run(
                     f'ffmpeg -i "{video_path}" -i "{padded_audio}" '
-                    f'-c:v copy -map 0:v:0 -map 1:a:0 -t {video_duration} "{output_path}" -y',
+                    f'-c:v copy -map 0:v:0 -map 1:a:0 '
+                    f'-t {video_duration} "{output_path}" -y',
                     shell=True, capture_output=True
                 )
 
