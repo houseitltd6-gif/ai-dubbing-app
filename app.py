@@ -7,8 +7,8 @@ ALL_VOICES = {
     "👨 বাংলা পুরুষ — Pradeep":    "bn-BD-PradeepNeural",
     "👩 বাংলা মহিলা — Nabanita":   "bn-BD-NabanitaNeural",
     "👨 ইংরেজি পুরুষ — Guy":        "en-US-GuyNeural",
-    "👨 ইংরেজি পুরুষ — Davis":      "en-US-DavisNeural",
-    "👨 ইংরেজি পুরুষ — Tony":       "en-US-TonyNeural",
+    "👨 ইংরেজি পুরুষ — Christopher": "en-US-ChristopherNeural",
+    "👨 ইংরেজি পুরুষ — Eric":        "en-US-EricNeural",
     "👩 ইংরেজি মহিলা — Jenny":      "en-US-JennyNeural",
     "👩 ইংরেজি মহিলা — Aria":       "en-US-AriaNeural",
     "👩 ইংরেজি মহিলা — Sara":       "en-US-SaraNeural",
@@ -206,14 +206,33 @@ def text_to_speech(text, voice_code, output_path):
             f.write(text)
         result = subprocess.run(
             f'edge-tts --voice "{voice_code}" --file "{text_file}" --write-media "{output_path}"',
-            shell=True, capture_output=True, text=True, timeout=60
+            shell=True, capture_output=True, text=True, timeout=120
         )
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+            return True
+        # Direct text দিয়ে চেষ্টা
+        safe_text = text.replace('"', "'")
+        subprocess.run(
+            f'edge-tts --voice "{voice_code}" --text "{safe_text[:500]}" --write-media "{output_path}"',
+            shell=True, capture_output=True, text=True, timeout=120
+        )
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
             return True
         return False
     except:
         return False
 
+def text_to_speech_gtts(text, lang_code, output_path):
+    try:
+        # gTTS এর জন্য lang code fix
+        gtts_lang = lang_code if lang_code in ["bn","hi","ur","tr","ar","fr","de"] else "en"
+        tts = gTTS(text=text, lang=gtts_lang, slow=False)
+        tts.save(output_path)
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+            return True
+        return False
+    except:
+        return False
 def text_to_speech_gtts(text, lang_code, output_path):
     try:
         tts = gTTS(text=text, lang=lang_code, slow=False)
