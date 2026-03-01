@@ -273,13 +273,30 @@ def translate_text(text, src_code, dest_code):
         chunks.append(current)
     parts = []
     for chunk in chunks:
+        if not chunk.strip():
+            continue
         try:
-            translated = GoogleTranslator(source=src_code, target=dest_code).translate(chunk)
-            parts.append(translated if translated else chunk)
+            # MyMemory — spoken language এর জন্য ভালো
+            from deep_translator import MyMemoryTranslator
+            translated = MyMemoryTranslator(
+                source=src_code,
+                target=dest_code
+            ).translate(chunk.strip())
+            if translated and len(translated) > 2:
+                parts.append(translated)
+            else:
+                raise Exception("Empty result")
         except:
-            parts.append(chunk)
+            try:
+                # Fallback: Google Translate
+                translated = GoogleTranslator(
+                    source=src_code,
+                    target=dest_code
+                ).translate(chunk.strip())
+                parts.append(translated if translated else chunk)
+            except:
+                parts.append(chunk)
     return ' '.join(parts)
-
 # ---- HERO ----
 st.markdown("""
 <div class="hero">
