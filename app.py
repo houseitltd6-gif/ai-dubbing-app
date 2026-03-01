@@ -260,6 +260,12 @@ st.markdown("""
 .footer-sub { color: #64748b; font-size: 0.8rem; margin-top: 0.3rem; }
 footer { visibility: hidden; }
 #MainMenu { visibility: hidden; }
+header { visibility: hidden; }
+[data-testid="stToolbar"] { display: none !important; }
+[data-testid="manage-app-button"] { display: none !important; }
+.stDeployButton { display: none !important; }
+[class*="viewerBadge"] { display: none !important; }
+div[class*="ProfilePreview"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
