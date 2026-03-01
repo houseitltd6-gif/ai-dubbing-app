@@ -824,8 +824,3 @@ st.markdown("""
     <div class="footer-sub">DubIT — Bangladesh's First AI Video Dubbing Tool</div>
 </div>
 """, unsafe_allow_html=True)
-```
-
-**Admin Panel URL:**
-```
-https://ai-dubbing-app-4wg9zrh3vboatg6mak3uwv.streamlit.app/?panel=dubitadmin2024
