@@ -1,14 +1,15 @@
 import streamlit as st
-import subprocess, os, whisper
+import subprocess, os, whisper, json
+from datetime import datetime, date
 from gtts import gTTS
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 
 ALL_VOICES = {
     "👨 বাংলা পুরুষ — Pradeep":    "bn-BD-PradeepNeural",
     "👩 বাংলা মহিলা — Nabanita":   "bn-BD-NabanitaNeural",
     "👨 ইংরেজি পুরুষ — Guy":        "en-US-GuyNeural",
-    "👨 ইংরেজি পুরুষ — Christopher": "en-US-ChristopherNeural",
-    "👨 ইংরেজি পুরুষ — Eric":        "en-US-EricNeural",
+    "👨 ইংরেজি পুরুষ — Christopher":"en-US-ChristopherNeural",
+    "👨 ইংরেজি পুরুষ — Eric":       "en-US-EricNeural",
     "👩 ইংরেজি মহিলা — Jenny":      "en-US-JennyNeural",
     "👩 ইংরেজি মহিলা — Aria":       "en-US-AriaNeural",
     "👩 ইংরেজি মহিলা — Sara":       "en-US-SaraNeural",
@@ -65,6 +66,58 @@ TARGET_LANGUAGES = {
     "🇹🇷 টার্কিশ": "tr",
     "🇸🇦 আরবি":    "ar",
 }
+
+BKASH_NUMBER = "01821282411"
+ADMIN_PASSWORD = "dubit2024admin"
+FREE_DAILY_LIMIT = 3
+PREMIUM_FILE = "/tmp/premium_users.json"
+USAGE_FILE = "/tmp/usage_tracker.json"
+
+def load_json(path):
+    try:
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                return json.load(f)
+    except:
+        pass
+    return {}
+
+def save_json(path, data):
+    try:
+        with open(path, "w") as f:
+            json.dump(data, f)
+    except:
+        pass
+
+def is_premium(session_id):
+    data = load_json(PREMIUM_FILE)
+    return data.get(session_id, {}).get("active", False)
+
+def get_today_usage(session_id):
+    data = load_json(USAGE_FILE)
+    today = str(date.today())
+    return data.get(session_id, {}).get(today, 0)
+
+def increment_usage(session_id):
+    data = load_json(USAGE_FILE)
+    today = str(date.today())
+    if session_id not in data:
+        data[session_id] = {}
+    data[session_id][today] = data[session_id].get(today, 0) + 1
+    save_json(USAGE_FILE, data)
+
+def approve_premium(session_id, txn_id):
+    data = load_json(PREMIUM_FILE)
+    data[session_id] = {
+        "active": True,
+        "txn_id": txn_id,
+        "date": str(datetime.now()),
+    }
+    save_json(PREMIUM_FILE, data)
+
+def get_pending_requests():
+    data = load_json(PREMIUM_FILE)
+    return {k: v for k, v in data.items() if not v.get("active", False)}
 
 st.set_page_config(
     page_title="DubIT — AI Video Dubbing",
@@ -132,6 +185,47 @@ st.markdown("""
     letter-spacing: 2px;
     margin-bottom: 0.8rem;
 }
+.premium-box {
+    background: linear-gradient(135deg, #1a0533, #0d1b4b);
+    border: 2px solid rgba(139, 92, 246, 0.5);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    margin: 1rem 0;
+}
+.free-box {
+    background: linear-gradient(135deg, #0f0f1f, #1a1a35);
+    border: 1px solid rgba(100, 116, 139, 0.3);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    margin: 1rem 0;
+}
+.plan-price {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.badge-premium {
+    display: inline-block;
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    color: white;
+    padding: 0.3rem 1rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.badge-free {
+    display: inline-block;
+    background: rgba(100, 116, 139, 0.3);
+    color: #94a3b8;
+    padding: 0.3rem 1rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
 .stFileUploader > div {
     background: linear-gradient(135deg, #0f0f1f, #1a1a35) !important;
     border: 2px dashed rgba(139, 92, 246, 0.4) !important;
@@ -146,6 +240,12 @@ st.markdown("""
     background: #0f0f1f !important;
     border: 1px solid rgba(139, 92, 246, 0.3) !important;
     border-radius: 12px !important;
+}
+.stTextInput > div > div {
+    background: #0f0f1f !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    color: white !important;
 }
 .stButton > button {
     background: linear-gradient(135deg, #7c3aed, #2563eb) !important;
@@ -197,6 +297,15 @@ if "dubbing_done" not in st.session_state:
     st.session_state.dubbing_done = False
 if "selected_voice_key" not in st.session_state:
     st.session_state.selected_voice_key = ""
+if "session_id" not in st.session_state:
+    import uuid
+    st.session_state.session_id = str(uuid.uuid4())[:8]
+if "page" not in st.session_state:
+    st.session_state.page = "main"
+
+session_id = st.session_state.session_id
+user_is_premium = is_premium(session_id)
+today_usage = get_today_usage(session_id)
 
 # ---- FUNCTIONS ----
 def text_to_speech(text, voice_code, output_path):
@@ -204,16 +313,8 @@ def text_to_speech(text, voice_code, output_path):
         text_file = "/tmp/tts_input.txt"
         with open(text_file, "w", encoding="utf-8") as f:
             f.write(text)
-        result = subprocess.run(
-            f'edge-tts --voice "{voice_code}" --file "{text_file}" --write-media "{output_path}"',
-            shell=True, capture_output=True, text=True, timeout=120
-        )
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-            return True
-        # Direct text দিয়ে চেষ্টা
-        safe_text = text.replace('"', "'")
         subprocess.run(
-            f'edge-tts --voice "{voice_code}" --text "{safe_text[:500]}" --write-media "{output_path}"',
+            f'edge-tts --voice "{voice_code}" --file "{text_file}" --write-media "{output_path}"',
             shell=True, capture_output=True, text=True, timeout=120
         )
         if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
@@ -224,20 +325,10 @@ def text_to_speech(text, voice_code, output_path):
 
 def text_to_speech_gtts(text, lang_code, output_path):
     try:
-        # gTTS এর জন্য lang code fix
         gtts_lang = lang_code if lang_code in ["bn","hi","ur","tr","ar","fr","de"] else "en"
         tts = gTTS(text=text, lang=gtts_lang, slow=False)
         tts.save(output_path)
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-            return True
-        return False
-    except:
-        return False
-def text_to_speech_gtts(text, lang_code, output_path):
-    try:
-        tts = gTTS(text=text, lang=lang_code, slow=False)
-        tts.save(output_path)
-        return True
+        return os.path.exists(output_path) and os.path.getsize(output_path) > 1000
     except:
         return False
 
@@ -276,47 +367,201 @@ def translate_text(text, src_code, dest_code):
         if not chunk.strip():
             continue
         try:
-            # MyMemory — spoken language এর জন্য ভালো
-            from deep_translator import MyMemoryTranslator
-            translated = MyMemoryTranslator(
-                source=src_code,
-                target=dest_code
-            ).translate(chunk.strip())
+            translated = MyMemoryTranslator(source=src_code, target=dest_code).translate(chunk.strip())
             if translated and len(translated) > 2:
                 parts.append(translated)
             else:
-                raise Exception("Empty result")
+                raise Exception("Empty")
         except:
             try:
-                # Fallback: Google Translate
-                translated = GoogleTranslator(
-                    source=src_code,
-                    target=dest_code
-                ).translate(chunk.strip())
+                translated = GoogleTranslator(source=src_code, target=dest_code).translate(chunk.strip())
                 parts.append(translated if translated else chunk)
             except:
                 parts.append(chunk)
     return ' '.join(parts)
+
 # ---- HERO ----
 st.markdown("""
 <div class="hero">
     <div class="hero-badge">🇧🇩 Bangladesh's First</div>
     <h1>DubIT</h1>
-    <p>যেকোনো ভিডিও → ৬ ভাষায় AI ডাবিং | সম্পূর্ণ ফ্রি</p>
+    <p>যেকোনো ভিডিও → ৬ ভাষায় AI ডাবিং</p>
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="stats-row">
-    <div class="stat-card"><div class="stat-number">6+</div><div class="stat-label">ভাষা</div></div>
-    <div class="stat-card"><div class="stat-number">20</div><div class="stat-label">কণ্ঠ</div></div>
-    <div class="stat-card"><div class="stat-number">FREE</div><div class="stat-label">সম্পূর্ণ ফ্রি</div></div>
-    <div class="stat-card"><div class="stat-number">200MB</div><div class="stat-label">ফাইল লিমিট</div></div>
-</div>
-""", unsafe_allow_html=True)
+if user_is_premium:
+    st.markdown("""
+    <div class="stats-row">
+        <div class="stat-card"><div class="stat-number">6+</div><div class="stat-label">ভাষা</div></div>
+        <div class="stat-card"><div class="stat-number">20</div><div class="stat-label">কণ্ঠ</div></div>
+        <div class="stat-card"><div class="stat-number">∞</div><div class="stat-label">Unlimited</div></div>
+        <div class="stat-card"><div class="stat-number">⭐</div><div class="stat-label">Premium</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.success("⭐ আপনি Premium Member!")
+else:
+    remaining = max(0, FREE_DAILY_LIMIT - today_usage)
+    st.markdown(f"""
+    <div class="stats-row">
+        <div class="stat-card"><div class="stat-number">6+</div><div class="stat-label">ভাষা</div></div>
+        <div class="stat-card"><div class="stat-number">20</div><div class="stat-label">কণ্ঠ</div></div>
+        <div class="stat-card"><div class="stat-number">FREE</div><div class="stat-label">ফ্রি</div></div>
+        <div class="stat-card"><div class="stat-number">{remaining}/3</div><div class="stat-label">আজকের বাকি</div></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# ---- DOWNLOAD PAGE ----
-if st.session_state.dubbing_done and st.session_state.dubbed_files:
+# ---- NAVIGATION ----
+col_nav1, col_nav2, col_nav3 = st.columns(3)
+with col_nav1:
+    if st.button("🎬 ডাবিং করুন"):
+        st.session_state.page = "main"
+        st.session_state.dubbing_done = False
+        st.rerun()
+with col_nav2:
+    if st.button("⭐ Premium নিন"):
+        st.session_state.page = "premium"
+        st.rerun()
+with col_nav3:
+    if st.button("🔑 Admin"):
+        st.session_state.page = "admin"
+        st.rerun()
+
+st.markdown("---")
+
+# ============================
+# PREMIUM PAGE
+# ============================
+if st.session_state.page == "premium":
+    st.markdown('<div class="section-title">⭐ Premium Plan</div>', unsafe_allow_html=True)
+
+    col_free, col_paid = st.columns(2)
+    with col_free:
+        st.markdown("""
+        <div class="free-box">
+            <div class="badge-free">FREE</div>
+            <div class="plan-price">৳০</div>
+            <p style="color:#94a3b8">প্রতি মাসে</p>
+            <hr style="border-color:rgba(255,255,255,0.1)">
+            <p style="color:#94a3b8; font-size:0.9rem">
+            ✅ ৩টি ভিডিও/দিন<br>
+            ✅ ৬ ভাষা<br>
+            ✅ ২০টি কণ্ঠ<br>
+            ❌ Limited usage
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_paid:
+        st.markdown("""
+        <div class="premium-box">
+            <div class="badge-premium">PREMIUM ⭐</div>
+            <div class="plan-price">৳৯৯</div>
+            <p style="color:#a78bfa">প্রতি মাসে</p>
+            <hr style="border-color:rgba(139,92,246,0.3)">
+            <p style="color:#e2e8f0; font-size:0.9rem">
+            ✅ Unlimited ভিডিও<br>
+            ✅ ৬ ভাষা<br>
+            ✅ ২০টি কণ্ঠ<br>
+            ✅ Priority processing
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="background:linear-gradient(135deg,#0f0f1f,#1a1a35);border:1px solid rgba(139,92,246,0.3);border-radius:16px;padding:1.5rem;text-align:center">
+        <h3 style="color:#a78bfa">📱 bKash এ পেমেন্ট করুন</h3>
+        <p style="color:#94a3b8">Send Money করুন এই নম্বরে:</p>
+        <h2 style="color:white;font-size:2rem;letter-spacing:3px">{BKASH_NUMBER}</h2>
+        <p style="color:#a78bfa;font-weight:700">Amount: ৯৯ টাকা</p>
+        <p style="color:#64748b;font-size:0.85rem">Personal → Send Money → নম্বর দিন → ৯৯ টাকা</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="section-title">📋 Transaction ID দিন</div>', unsafe_allow_html=True)
+
+    txn_id = st.text_input(
+        "",
+        placeholder="যেমন: 8A3B9F2K1M (bKash SMS এ পাবেন)",
+        label_visibility="collapsed"
+    )
+
+    if st.button("✅ Premium Activate করুন"):
+        if not txn_id or len(txn_id) < 5:
+            st.error("⚠️ সঠিক Transaction ID দিন!")
+        else:
+            all_premium = load_json(PREMIUM_FILE)
+            all_txns = [v.get("txn_id") for v in all_premium.values()]
+            if txn_id in all_txns:
+                st.error("⚠️ এই Transaction ID আগেই ব্যবহার হয়েছে!")
+            else:
+                pending = load_json(PREMIUM_FILE)
+                pending[session_id] = {
+                    "active": False,
+                    "txn_id": txn_id,
+                    "date": str(datetime.now()),
+                    "status": "pending"
+                }
+                save_json(PREMIUM_FILE, pending)
+                st.success("✅ Request পাঠানো হয়েছে! Admin verify করলে Premium activate হবে।")
+                st.info(f"আপনার Session ID: **{session_id}** — এটা সংরক্ষণ করুন।")
+
+# ============================
+# ADMIN PAGE
+# ============================
+elif st.session_state.page == "admin":
+    st.markdown('<div class="section-title">🔑 Admin Panel</div>', unsafe_allow_html=True)
+
+    admin_pass = st.text_input("Admin Password", type="password", label_visibility="collapsed",
+                                placeholder="Admin password দিন")
+
+    if admin_pass == ADMIN_PASSWORD:
+        st.success("✅ Admin access granted!")
+
+        all_data = load_json(PREMIUM_FILE)
+        pending = {k: v for k, v in all_data.items() if not v.get("active", False)}
+        active = {k: v for k, v in all_data.items() if v.get("active", False)}
+
+        st.markdown(f"**Pending Requests: {len(pending)} | Active Premium: {len(active)}**")
+
+        if pending:
+            st.markdown("### ⏳ Pending Requests")
+            for sid, info in pending.items():
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"""
+                    **Session:** `{sid}`
+                    **TXN ID:** `{info.get('txn_id')}`
+                    **Date:** {info.get('date', '')[:16]}
+                    """)
+                with col2:
+                    if st.button(f"✅ Approve", key=f"app_{sid}"):
+                        all_data[sid]["active"] = True
+                        all_data[sid]["status"] = "approved"
+                        save_json(PREMIUM_FILE, all_data)
+                        st.success(f"✅ {sid} Approved!")
+                        st.rerun()
+                    if st.button(f"❌ Reject", key=f"rej_{sid}"):
+                        del all_data[sid]
+                        save_json(PREMIUM_FILE, all_data)
+                        st.warning(f"❌ {sid} Rejected!")
+                        st.rerun()
+                st.markdown("---")
+        else:
+            st.info("কোনো pending request নেই।")
+
+        if active:
+            st.markdown("### ⭐ Active Premium Users")
+            for sid, info in active.items():
+                st.markdown(f"✅ `{sid}` — TXN: `{info.get('txn_id')}` — {info.get('date','')[:16]}")
+    elif admin_pass:
+        st.error("❌ Wrong password!")
+
+# ============================
+# DOWNLOAD PAGE
+# ============================
+elif st.session_state.dubbing_done and st.session_state.dubbed_files:
     st.success("🎉 ডাবিং সম্পন্ন!")
     st.info(f"🎙️ ব্যবহৃত কণ্ঠ: {st.session_state.selected_voice_key}")
     st.markdown('<div class="section-title">⬇️ ডাউনলোড করুন</div>', unsafe_allow_html=True)
@@ -334,155 +579,167 @@ if st.session_state.dubbing_done and st.session_state.dubbed_files:
     if st.button("🔄 নতুন ভিডিও ডাব করুন"):
         st.session_state.dubbed_files = {}
         st.session_state.dubbing_done = False
+        st.session_state.page = "main"
         st.rerun()
 
-# ---- MAIN PAGE ----
+# ============================
+# MAIN PAGE
+# ============================
 else:
-    st.markdown('<div class="section-title">📁 ভিডিও আপলোড করুন</div>', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader(
-        "",
-        type=["mp4", "avi", "mov", "mpeg4"],
-        label_visibility="collapsed"
-    )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown('<div class="section-title">📥 মূল ভাষা</div>', unsafe_allow_html=True)
-        source_lang = st.selectbox(
+    if not user_is_premium and today_usage >= FREE_DAILY_LIMIT:
+        st.error("⚠️ আজকের ফ্রি limit শেষ! Premium নিন অথবা কাল আবার আসুন।")
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg,#1a0533,#0d1b4b);border:2px solid rgba(139,92,246,0.5);
+        border-radius:20px;padding:2rem;text-align:center;margin:1rem 0">
+            <h3 style="color:#a78bfa">⭐ Premium নিন মাত্র ৯৯ টাকায়</h3>
+            <p style="color:#94a3b8">Unlimited ডাবিং করুন</p>
+            <p style="color:white;font-size:1.5rem;font-weight:700">bKash: {BKASH_NUMBER}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("⭐ Premium Activate করুন"):
+            st.session_state.page = "premium"
+            st.rerun()
+    else:
+        st.markdown('<div class="section-title">📁 ভিডিও আপলোড করুন</div>', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader(
             "",
-            list(SOURCE_LANGUAGES.keys()),
-            index=1,
-            label_visibility="collapsed",
-            key="src_lang"
-        )
-    with col2:
-        st.markdown('<div class="section-title">📤 টার্গেট ভাষা</div>', unsafe_allow_html=True)
-        target_options = [l for l in TARGET_LANGUAGES.keys() if l != source_lang]
-        selected_langs = st.multiselect(
-            "",
-            target_options,
-            default=[target_options[0]] if target_options else [],
+            type=["mp4", "avi", "mov", "mpeg4"],
             label_visibility="collapsed"
         )
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="section-title">🎙️ কণ্ঠ বেছে নিন ও শুনুন</div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown('<div class="section-title">📥 মূল ভাষা</div>', unsafe_allow_html=True)
+            source_lang = st.selectbox("", list(SOURCE_LANGUAGES.keys()), index=1,
+                                        label_visibility="collapsed", key="src_lang")
+        with col2:
+            st.markdown('<div class="section-title">📤 টার্গেট ভাষা</div>', unsafe_allow_html=True)
+            target_options = [l for l in TARGET_LANGUAGES.keys() if l != source_lang]
+            selected_langs = st.multiselect("", target_options,
+                                            default=[target_options[0]] if target_options else [],
+                                            label_visibility="collapsed")
 
-    selected_voice = st.selectbox(
-        "",
-        list(ALL_VOICES.keys()),
-        label_visibility="collapsed",
-        key="voice_select"
-    )
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="section-title">🎙️ কণ্ঠ বেছে নিন</div>', unsafe_allow_html=True)
+        selected_voice = st.selectbox("", list(ALL_VOICES.keys()),
+                                       label_visibility="collapsed", key="voice_select")
 
-    col_prev, col_space = st.columns([1, 2])
-    with col_prev:
-        if st.button("🔊 এই কণ্ঠ শুনুন"):
-            voice_code = ALL_VOICES[selected_voice]
-            lang_code = voice_code[:2]
-            preview_text = PREVIEW_TEXT.get(lang_code, PREVIEW_TEXT["en"])
-            preview_path = "/tmp/preview_voice.mp3"
-            with st.spinner("কণ্ঠ তৈরি হচ্ছে..."):
-                success = text_to_speech(preview_text, voice_code, preview_path)
-                if success:
-                    with open(preview_path, "rb") as f:
-                        st.audio(f.read(), format="audio/mp3")
-                else:
-                    st.warning("Preview তৈরি করা যায়নি।")
+        col_prev, col_space = st.columns([1, 2])
+        with col_prev:
+            if st.button("🔊 এই কণ্ঠ শুনুন"):
+                voice_code = ALL_VOICES[selected_voice]
+                lang_code = voice_code[:2]
+                preview_text = PREVIEW_TEXT.get(lang_code, PREVIEW_TEXT["en"])
+                preview_path = "/tmp/preview_voice.mp3"
+                with st.spinner("কণ্ঠ তৈরি হচ্ছে..."):
+                    if text_to_speech(preview_text, voice_code, preview_path):
+                        with open(preview_path, "rb") as f:
+                            st.audio(f.read(), format="audio/mp3")
+                    else:
+                        st.warning("Preview তৈরি হয়নি।")
 
-    st.info(f"✅ নির্বাচিত কণ্ঠ: **{selected_voice}**")
-    st.markdown("<br>", unsafe_allow_html=True)
+        st.info(f"✅ নির্বাচিত কণ্ঠ: **{selected_voice}**")
 
-    if st.button("🚀 ডাবিং শুরু করুন"):
-        if not uploaded_file:
-            st.error("⚠️ আগে ভিডিও আপলোড করুন!")
-        elif not selected_langs:
-            st.error("⚠️ কমপক্ষে একটি টার্গেট ভাষা সিলেক্ট করুন!")
-        else:
-            voice_code = ALL_VOICES[selected_voice]
-            src_code = SOURCE_LANGUAGES[source_lang]
+        if not user_is_premium:
+            remaining = FREE_DAILY_LIMIT - today_usage
+            st.warning(f"⚡ আজকের বাকি: {remaining}/3 ভিডিও | [⭐ Premium নিন](#)")
 
-            video_path = "/tmp/input_video.mp4"
-            with open(video_path, "wb") as f:
-                f.write(uploaded_file.read())
+        st.markdown("<br>", unsafe_allow_html=True)
 
-            progress = st.progress(0)
-            status = st.empty()
+        if st.button("🚀 ডাবিং শুরু করুন"):
+            if not uploaded_file:
+                st.error("⚠️ আগে ভিডিও আপলোড করুন!")
+            elif not selected_langs:
+                st.error("⚠️ কমপক্ষে একটি টার্গেট ভাষা সিলেক্ট করুন!")
+            elif not user_is_premium and today_usage >= FREE_DAILY_LIMIT:
+                st.error("⚠️ আজকের limit শেষ! Premium নিন।")
+            else:
+                voice_code = ALL_VOICES[selected_voice]
+                src_code = SOURCE_LANGUAGES[source_lang]
 
-            status.info("⏳ অডিও বের হচ্ছে...")
-            subprocess.run(
-                f'ffmpeg -i "{video_path}" -q:a 0 -map a /tmp/audio_src.mp3 -y',
-                shell=True, capture_output=True
-            )
-            progress.progress(20)
+                video_path = "/tmp/input_video.mp4"
+                with open(video_path, "wb") as f:
+                    f.write(uploaded_file.read())
 
-            status.info("⏳ AI টেক্সট বের করছে...")
-            model = whisper.load_model("base")
-            result = model.transcribe("/tmp/audio_src.mp3", language=src_code)
-            source_text = result["text"]
-            progress.progress(40)
+                progress = st.progress(0)
+                status = st.empty()
 
-            video_duration = get_duration(video_path)
-            step = 60 // len(selected_langs)
-            current_progress = 40
-            dubbed_files = {}
-
-            for lang_name in selected_langs:
-                dest_code = TARGET_LANGUAGES[lang_name]
-                status.info(f"⏳ {lang_name} ডাবিং হচ্ছে...")
-
-                translated = translate_text(source_text, src_code, dest_code)
-                audio_path = f"/tmp/audio_{dest_code}.mp3"
-
-                compatible_voice = get_compatible_voice(voice_code, dest_code)
-                success = text_to_speech(translated, compatible_voice, audio_path)
-                if not success:
-                    text_to_speech_gtts(translated, dest_code, audio_path)
-
-                padded_audio = f"/tmp/audio_padded_{dest_code}.mp3"
-                audio_duration = get_duration(audio_path)
-
-                if audio_duration > 0 and audio_duration < video_duration:
-                    subprocess.run(
-                        f'ffmpeg -i "{audio_path}" '
-                        f'-af "apad=pad_dur={video_duration - audio_duration}" '
-                        f'-t {video_duration} "{padded_audio}" -y',
-                        shell=True, capture_output=True
-                    )
-                else:
-                    padded_audio = audio_path
-
-                output_path = f"/tmp/dubbed_{dest_code}.mp4"
+                status.info("⏳ অডিও বের হচ্ছে...")
                 subprocess.run(
-                    f'ffmpeg -i "{video_path}" -i "{padded_audio}" '
-                    f'-c:v copy -map 0:v:0 -map 1:a:0 '
-                    f'-t {video_duration} "{output_path}" -y',
+                    f'ffmpeg -i "{video_path}" -q:a 0 -map a /tmp/audio_src.mp3 -y',
                     shell=True, capture_output=True
                 )
+                progress.progress(20)
 
-                current_progress += step
-                progress.progress(min(current_progress, 100))
+                status.info("⏳ AI টেক্সট বের করছে...")
+                model = whisper.load_model("base")
+                result = model.transcribe("/tmp/audio_src.mp3", language=src_code)
+                source_text = result["text"]
+                progress.progress(40)
 
-                if os.path.exists(output_path):
-                    with open(output_path, "rb") as f:
-                        file_bytes = f.read()
-                    dubbed_files[lang_name] = {
-                        "bytes": file_bytes,
-                        "filename": f"DubIT_{dest_code}.mp4"
-                    }
+                video_duration = get_duration(video_path)
+                step = 60 // len(selected_langs)
+                current_progress = 40
+                dubbed_files = {}
 
-            progress.progress(100)
-            status.empty()
-            st.session_state.dubbed_files = dubbed_files
-            st.session_state.dubbing_done = True
-            st.session_state.selected_voice_key = selected_voice
-            st.rerun()
+                for lang_name in selected_langs:
+                    dest_code = TARGET_LANGUAGES[lang_name]
+                    status.info(f"⏳ {lang_name} ডাবিং হচ্ছে...")
+
+                    translated = translate_text(source_text, src_code, dest_code)
+                    audio_path = f"/tmp/audio_{dest_code}.mp3"
+
+                    compatible_voice = get_compatible_voice(voice_code, dest_code)
+                    success = text_to_speech(translated, compatible_voice, audio_path)
+                    if not success:
+                        text_to_speech_gtts(translated, dest_code, audio_path)
+
+                    padded_audio = f"/tmp/audio_padded_{dest_code}.mp3"
+                    audio_duration = get_duration(audio_path)
+
+                    if audio_duration > 0 and audio_duration < video_duration:
+                        subprocess.run(
+                            f'ffmpeg -i "{audio_path}" '
+                            f'-af "apad=pad_dur={video_duration - audio_duration}" '
+                            f'-t {video_duration} "{padded_audio}" -y',
+                            shell=True, capture_output=True
+                        )
+                    else:
+                        padded_audio = audio_path
+
+                    output_path = f"/tmp/dubbed_{dest_code}.mp4"
+                    subprocess.run(
+                        f'ffmpeg -i "{video_path}" -i "{padded_audio}" '
+                        f'-c:v copy -map 0:v:0 -map 1:a:0 '
+                        f'-t {video_duration} "{output_path}" -y',
+                        shell=True, capture_output=True
+                    )
+
+                    current_progress += step
+                    progress.progress(min(current_progress, 100))
+
+                    if os.path.exists(output_path):
+                        with open(output_path, "rb") as f:
+                            file_bytes = f.read()
+                        dubbed_files[lang_name] = {
+                            "bytes": file_bytes,
+                            "filename": f"DubIT_{dest_code}.mp4"
+                        }
+
+                increment_usage(session_id)
+                progress.progress(100)
+                status.empty()
+                st.session_state.dubbed_files = dubbed_files
+                st.session_state.dubbing_done = True
+                st.session_state.selected_voice_key = selected_voice
+                st.rerun()
 
 # ---- FOOTER ----
-st.markdown("""
+st.markdown(f"""
 <div class="footer">
     <div class="footer-brand">Made with Hasibur Joy by House IT LTD</div>
     <div class="footer-sub">DubIT — Bangladesh's First AI Video Dubbing Tool</div>
+    <div class="footer-sub" style="margin-top:0.5rem;color:#1e293b">Session: {session_id}</div>
 </div>
 """, unsafe_allow_html=True)
