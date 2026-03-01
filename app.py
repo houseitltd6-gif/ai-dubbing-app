@@ -6,7 +6,6 @@ from deep_translator import GoogleTranslator, MyMemoryTranslator
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# ---- FIREBASE INIT ----
 @st.cache_resource
 def init_firebase():
     try:
@@ -33,25 +32,25 @@ db = init_firebase()
 
 ALL_VOICES = {
     "👨 বাংলা পুরুষ — Pradeep":      "bn-BD-PradeepNeural",
-    "👩 বাংলা মহিলা — Nabanita":      "bn-BD-NabanitaNeural",
-    "👨 ইংরেজি পুরুষ — Guy":           "en-US-GuyNeural",
+    "👩 বাংলা মহিলা — Nabanita":     "bn-BD-NabanitaNeural",
+    "👨 ইংরেজি পুরুষ — Guy":          "en-US-GuyNeural",
     "👨 ইংরেজি পুরুষ — Christopher":  "en-US-ChristopherNeural",
-    "👨 ইংরেজি পুরুষ — Eric":          "en-US-EricNeural",
-    "👩 ইংরেজি মহিলা — Jenny":         "en-US-JennyNeural",
-    "👩 ইংরেজি মহিলা — Aria":          "en-US-AriaNeural",
-    "👩 ইংরেজি মহিলা — Sara":          "en-US-SaraNeural",
-    "👨 হিন্দি পুরুষ — Madhur":        "hi-IN-MadhurNeural",
-    "👩 হিন্দি মহিলা — Swara":         "hi-IN-SwaraNeural",
-    "👨 উর্দু পুরুষ — Asad":            "ur-PK-AsadNeural",
-    "👩 উর্দু মহিলা — Uzma":            "ur-PK-UzmaNeural",
-    "👨 টার্কিশ পুরুষ — Ahmet":        "tr-TR-AhmetNeural",
-    "👩 টার্কিশ মহিলা — Emel":         "tr-TR-EmelNeural",
-    "👨 আরবি পুরুষ — Hamed":           "ar-SA-HamedNeural",
-    "👩 আরবি মহিলা — Zariyah":         "ar-SA-ZariyahNeural",
-    "👨 ফ্রেঞ্চ পুরুষ — Henri":         "fr-FR-HenriNeural",
-    "👩 ফ্রেঞ্চ মহিলা — Denise":        "fr-FR-DeniseNeural",
-    "👨 জার্মান পুরুষ — Conrad":        "de-DE-ConradNeural",
-    "👩 জার্মান মহিলা — Katja":         "de-DE-KatjaNeural",
+    "👨 ইংরেজি পুরুষ — Eric":         "en-US-EricNeural",
+    "👩 ইংরেজি মহিলা — Jenny":        "en-US-JennyNeural",
+    "👩 ইংরেজি মহিলা — Aria":         "en-US-AriaNeural",
+    "👩 ইংরেজি মহিলা — Sara":         "en-US-SaraNeural",
+    "👨 হিন্দি পুরুষ — Madhur":       "hi-IN-MadhurNeural",
+    "👩 হিন্দি মহিলা — Swara":        "hi-IN-SwaraNeural",
+    "👨 উর্দু পুরুষ — Asad":           "ur-PK-AsadNeural",
+    "👩 উর্দু মহিলা — Uzma":           "ur-PK-UzmaNeural",
+    "👨 টার্কিশ পুরুষ — Ahmet":       "tr-TR-AhmetNeural",
+    "👩 টার্কিশ মহিলা — Emel":        "tr-TR-EmelNeural",
+    "👨 আরবি পুরুষ — Hamed":          "ar-SA-HamedNeural",
+    "👩 আরবি মহিলা — Zariyah":        "ar-SA-ZariyahNeural",
+    "👨 ফ্রেঞ্চ পুরুষ — Henri":        "fr-FR-HenriNeural",
+    "👩 ফ্রেঞ্চ মহিলা — Denise":       "fr-FR-DeniseNeural",
+    "👨 জার্মান পুরুষ — Conrad":       "de-DE-ConradNeural",
+    "👩 জার্মান মহিলা — Katja":        "de-DE-KatjaNeural",
 }
 
 PREVIEW_TEXT = {
@@ -151,7 +150,7 @@ def inc_usage(uid):
     fb_set("usage", uid, data)
 
 def save_history(uid, info):
-    data = fb_get("history", uid) or {"items": []}
+    data  = fb_get("history", uid) or {"items": []}
     items = data.get("items", [])
     items.insert(0, info)
     items = items[:20]
@@ -162,8 +161,7 @@ def get_history(uid):
     return data.get("items", []) if data else []
 
 def register_user(email, password):
-    existing = fb_get("users", email)
-    if existing:
+    if fb_get("users", email):
         return False, "এই email আগেই registered!"
     uid = str(uuid.uuid4())[:8]
     fb_set("users", email, {
@@ -176,10 +174,8 @@ def register_user(email, password):
 
 def login_user(email, password):
     data = fb_get("users", email)
-    if not data:
-        return False, "Email পাওয়া যায়নি!"
-    if data["password"] != password:
-        return False, "Password ভুল!"
+    if not data:        return False, "Email পাওয়া যায়নি!"
+    if data["password"] != password: return False, "Password ভুল!"
     return True, data
 
 # ---- PAGE CONFIG ----
@@ -333,22 +329,22 @@ def translate_text(text, src, dest):
     return ' '.join(parts)
 
 # ======================================
-# ADMIN PANEL (FIXED LOGIC)
+# ADMIN PANEL
 # ======================================
 query_params = st.query_params
-is_authenticated_admin = (
-    query_params.get("panel") == "dubitadmin2024" or 
+is_admin_url = (
+    query_params.get("panel") == "dubitadmin2024" or
     st.session_state.get("is_admin", False)
 )
 
-if is_authenticated_admin:
+if is_admin_url:
     if not st.session_state.is_admin:
         st.markdown("""
-            <div class="hero">
-                <div class="hero-badge">SECURE ACCESS</div>
-                <h1>🔑 Admin</h1>
-                <p>DubIT Management Dashboard</p>
-            </div>
+        <div class="hero">
+            <div class="hero-badge">SECURE ACCESS</div>
+            <h1>🔑 Admin</h1>
+            <p>DubIT Management Dashboard</p>
+        </div>
         """, unsafe_allow_html=True)
         c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
@@ -363,20 +359,19 @@ if is_authenticated_admin:
                     st.error("❌ Wrong credentials!")
             st.markdown('</div>', unsafe_allow_html=True)
     else:
-        # --- Admin Dashboard Content ---
         all_premium = fb_get_all("premium")
         all_users   = fb_get_all("users")
         all_history = fb_get_all("history")
-        pending     = {k:v for k,v in all_premium.items() if not v.get("active",False)}
-        active      = {k:v for k,v in all_premium.items() if v.get("active",False)}
-        total_dubs  = sum(len(v.get("items",[])) for v in all_history.values())
+        pending     = {k:v for k,v in all_premium.items() if not v.get("active", False)}
+        active      = {k:v for k,v in all_premium.items() if v.get("active", False)}
+        total_dubs  = sum(len(v.get("items", [])) for v in all_history.values())
 
         st.markdown("""
-            <div class="hero">
-                <div class="hero-badge">ADMIN DASHBOARD</div>
-                <h1>DubIT</h1>
-                <p>Management & Analytics Panel — Firebase Powered</p>
-            </div>
+        <div class="hero">
+            <div class="hero-badge">ADMIN DASHBOARD</div>
+            <h1>DubIT</h1>
+            <p>Management & Analytics — Firebase Powered</p>
+        </div>
         """, unsafe_allow_html=True)
 
         c1, c2, c3, c4 = st.columns(4)
@@ -393,17 +388,18 @@ if is_authenticated_admin:
 
         monthly_rev = len(active) * 99
         st.markdown(f"""
-            <div style="background:linear-gradient(135deg,#0a2010,#0d2d1a);border:1px solid rgba(16,185,129,0.3);
-            border-radius:16px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center">
-                <div>
-                    <div style="color:#10b981;font-size:0.8rem;font-weight:700;letter-spacing:1px">MONTHLY REVENUE</div>
-                    <div style="color:white;font-size:2rem;font-weight:800">৳{monthly_rev}</div>
-                </div>
-                <div style="text-align:right">
-                    <div style="color:#64748b;font-size:0.8rem">Per User</div>
-                    <div style="color:#10b981;font-weight:700">৳99/month</div>
-                </div>
+        <div style="background:linear-gradient(135deg,#0a2010,#0d2d1a);border:1px solid rgba(16,185,129,0.3);
+        border-radius:16px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;
+        display:flex;justify-content:space-between;align-items:center">
+            <div>
+                <div style="color:#10b981;font-size:0.8rem;font-weight:700;letter-spacing:1px">MONTHLY REVENUE</div>
+                <div style="color:white;font-size:2rem;font-weight:800">৳{monthly_rev}</div>
             </div>
+            <div style="text-align:right">
+                <div style="color:#64748b;font-size:0.8rem">Per User</div>
+                <div style="color:#10b981;font-weight:700">৳99/month</div>
+            </div>
+        </div>
         """, unsafe_allow_html=True)
 
         if pending:
@@ -438,19 +434,19 @@ if is_authenticated_admin:
         if all_users:
             st.markdown('<div style="color:#94a3b8;font-size:0.75rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:1rem">👥 Registered Users</div>', unsafe_allow_html=True)
             st.markdown("""
-                <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
-                background:rgba(139,92,246,0.1);border-radius:10px;padding:0.7rem 1rem;
-                color:#a78bfa;font-size:0.75rem;font-weight:700;letter-spacing:1px;
-                text-transform:uppercase;margin-bottom:0.5rem">
-                    <span>Email</span><span>Status</span><span>আজ</span><span>Joined</span>
-                </div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
+            background:rgba(139,92,246,0.1);border-radius:10px;padding:0.7rem 1rem;
+            color:#a78bfa;font-size:0.75rem;font-weight:700;letter-spacing:1px;
+            text-transform:uppercase;margin-bottom:0.5rem">
+                <span>Email</span><span>Status</span><span>আজ</span><span>Joined</span>
+            </div>
             """, unsafe_allow_html=True)
             for email, info in all_users.items():
-                uid_u  = info.get("uid","")
-                prem   = is_premium(uid_u)
+                uid_u   = info.get("uid", "")
+                prem    = is_premium(uid_u)
                 usage_u = get_usage(uid_u)
-                joined = info.get("joined","")[:10]
-                badge  = '<span style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:700">⭐ Premium</span>' if prem else '<span style="background:rgba(100,116,139,0.2);color:#64748b;padding:2px 8px;border-radius:20px;font-size:0.7rem">Free</span>'
+                joined  = info.get("joined", "")[:10]
+                badge   = '<span style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:700">⭐ Premium</span>' if prem else '<span style="background:rgba(100,116,139,0.2);color:#64748b;padding:2px 8px;border-radius:20px;font-size:0.7rem">Free</span>'
                 st.markdown(f"""
                 <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
                 background:linear-gradient(135deg,#0d0d20,#141428);border:1px solid rgba(139,92,246,0.1);
@@ -482,8 +478,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# ---- LOGIN / REGISTER ----
 if not st.session_state.user_uid:
-    tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
+    tab1, tab2 = st.tabs(["🔐  Login", "📝  Register"])
+
     with tab1:
         c1, c2, c3 = st.columns([1, 3, 1])
         with c2:
@@ -499,7 +497,6 @@ if not st.session_state.user_uid:
                     if ok:
                         st.session_state.user_email = le
                         st.session_state.user_uid   = res["uid"]
-                        # ডাটাবেসে role: "admin" থাকলে সেশন আপডেট করা
                         if res.get("role") == "admin":
                             st.session_state.is_admin = True
                         st.session_state.page = "main"
@@ -511,6 +508,38 @@ if not st.session_state.user_uid:
     with tab2:
         c1, c2, c3 = st.columns([1, 3, 1])
         with c2:
+            # ---- Feature Preview Box ----
+            st.markdown("""
+            <div style="background:linear-gradient(135deg,#1a0533,#0d1b4b);
+            border:1px solid rgba(139,92,246,0.4);border-radius:16px;
+            padding:1.2rem;margin-bottom:1rem">
+                <div style="display:flex;justify-content:space-around;margin-bottom:0.8rem">
+                    <div style="text-align:center">
+                        <div style="font-size:1.6rem">🎬</div>
+                        <div style="color:#94a3b8;font-size:0.7rem;margin-top:0.2rem;font-weight:600">৬ ভাষা</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="font-size:1.6rem">🎙️</div>
+                        <div style="color:#94a3b8;font-size:0.7rem;margin-top:0.2rem;font-weight:600">২০ কণ্ঠ</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="font-size:1.6rem">⚡</div>
+                        <div style="color:#94a3b8;font-size:0.7rem;margin-top:0.2rem;font-weight:600">AI দ্রুত</div>
+                    </div>
+                    <div style="text-align:center">
+                        <div style="font-size:1.6rem">🆓</div>
+                        <div style="color:#94a3b8;font-size:0.7rem;margin-top:0.2rem;font-weight:600">ফ্রি শুরু</div>
+                    </div>
+                </div>
+                <div style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);
+                border-radius:8px;padding:0.5rem;text-align:center">
+                    <span style="color:#a78bfa;font-size:0.8rem;font-weight:600">
+                        ✨ আজই শুরু করুন — প্রতিদিন ৩টি ভিডিও বিনামূল্যে
+                    </span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
             st.markdown('<div class="auth-box">', unsafe_allow_html=True)
             st.markdown('<p style="color:#a78bfa;font-weight:700;font-size:1.1rem;margin-bottom:1rem">Create Account ✨</p>', unsafe_allow_html=True)
             re_ = st.text_input("", placeholder="📧 Email", key="re_")
@@ -534,6 +563,7 @@ if not st.session_state.user_uid:
             st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
+# ---- LOGGED IN ----
 uid          = st.session_state.user_uid
 user_premium = is_premium(uid)
 today_usage  = get_usage(uid)
@@ -571,11 +601,11 @@ with cn3:
         st.rerun()
 with cn4:
     if st.button("🚪 Logout"):
-        st.session_state.user_email = ""
-        st.session_state.user_uid   = ""
-        st.session_state.page       = "login"
+        st.session_state.user_email  = ""
+        st.session_state.user_uid    = ""
+        st.session_state.page        = "login"
         st.session_state.dubbing_done = False
-        st.session_state.is_admin = False
+        st.session_state.is_admin    = False
         st.rerun()
 
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
@@ -636,7 +666,7 @@ elif st.session_state.page == "premium":
         st.markdown(f"""
         <div style="background:linear-gradient(135deg,#0d0d20,#141428);border:1px solid rgba(139,92,246,0.2);border-radius:18px;padding:2rem;text-align:center;margin:1.5rem 0">
             <div style="color:#a78bfa;font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:1rem">📱 bKash এ পেমেন্ট করুন</div>
-            <div style="color:#94a3b8;font-size:0.9rem;margin-bottom:0.5rem">Send Money করুন:</div>
+            <div style="color:#94a3b8;margin-bottom:0.5rem">Send Money করুন:</div>
             <div style="color:white;font-size:2.2rem;font-weight:900;letter-spacing:4px;background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">{BKASH_NUMBER}</div>
             <div style="background:linear-gradient(135deg,#7c3aed,#2563eb);display:inline-block;color:white;padding:0.4rem 1.5rem;border-radius:50px;font-weight:700;margin:0.8rem 0">Amount: ৯৯ টাকা</div>
             <div style="color:#4a5568;font-size:0.8rem">bKash → Send Money → নম্বর দিন → ৯৯ টাকা</div>
@@ -668,8 +698,11 @@ elif st.session_state.dubbing_done and st.session_state.dubbed_files:
     st.markdown('<div style="background:linear-gradient(135deg,#0a2010,#0d2d1a);border:1px solid rgba(16,185,129,0.3);border-radius:16px;padding:1.5rem;text-align:center;margin-bottom:1.5rem"><div style="font-size:2.5rem">🎉</div><div style="color:#10b981;font-size:1.2rem;font-weight:700">ডাবিং সফলভাবে সম্পন্ন!</div></div>', unsafe_allow_html=True)
     st.info(f"🎙️ ব্যবহৃত কণ্ঠ: **{st.session_state.selected_voice}**")
     for lang_name, data in st.session_state.dubbed_files.items():
-        st.download_button(label=f"⬇️ {lang_name} ভিডিও ডাউনলোড করুন", data=data["bytes"],
-                           file_name=data["filename"], mime="video/mp4", key=f"dl_{lang_name}")
+        st.download_button(
+            label=f"⬇️ {lang_name} ভিডিও ডাউনলোড করুন",
+            data=data["bytes"], file_name=data["filename"],
+            mime="video/mp4", key=f"dl_{lang_name}"
+        )
     if st.button("🔄 নতুন ভিডিও ডাব করুন"):
         st.session_state.dubbed_files = {}
         st.session_state.dubbing_done = False
@@ -677,7 +710,7 @@ elif st.session_state.dubbing_done and st.session_state.dubbed_files:
         st.rerun()
 
 # ======================================
-# MAIN PAGE
+# MAIN DUBBING PAGE
 # ======================================
 else:
     if not user_premium and today_usage >= FREE_LIMIT:
@@ -693,15 +726,18 @@ else:
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<div class="section-title">📥 মূল ভাষা</div>', unsafe_allow_html=True)
-            source_lang = st.selectbox("", list(SOURCE_LANGUAGES.keys()), index=1, label_visibility="collapsed", key="src")
+            source_lang = st.selectbox("", list(SOURCE_LANGUAGES.keys()), index=1,
+                                        label_visibility="collapsed", key="src")
         with c2:
             st.markdown('<div class="section-title">📤 টার্গেট ভাষা</div>', unsafe_allow_html=True)
             opts = [l for l in TARGET_LANGUAGES if l != source_lang]
-            selected_langs = st.multiselect("", opts, default=[opts[0]] if opts else [], label_visibility="collapsed")
+            selected_langs = st.multiselect("", opts, default=[opts[0]] if opts else [],
+                                             label_visibility="collapsed")
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown('<div class="section-title">🎙️ কণ্ঠ বেছে নিন</div>', unsafe_allow_html=True)
-        selected_voice = st.selectbox("", list(ALL_VOICES.keys()), label_visibility="collapsed", key="vc")
+        selected_voice = st.selectbox("", list(ALL_VOICES.keys()),
+                                       label_visibility="collapsed", key="vc")
 
         cp_, cs_ = st.columns([1, 2])
         with cp_:
@@ -737,7 +773,8 @@ else:
                 prog   = st.progress(0)
                 status = st.empty()
                 status.info("⏳ অডিও বের হচ্ছে...")
-                subprocess.run(f'ffmpeg -i "{vpath}" -q:a 0 -map a /tmp/audio_src.mp3 -y', shell=True, capture_output=True)
+                subprocess.run(f'ffmpeg -i "{vpath}" -q:a 0 -map a /tmp/audio_src.mp3 -y',
+                               shell=True, capture_output=True)
                 prog.progress(20)
 
                 status.info("⏳ AI টেক্সট বের করছে...")
@@ -764,12 +801,18 @@ else:
                     padded = f"/tmp/padded_{dest_code}.mp3"
                     adur   = get_duration(apath)
                     if adur > 0 and adur < vdur:
-                        subprocess.run(f'ffmpeg -i "{apath}" -af "apad=pad_dur={vdur-adur}" -t {vdur} "{padded}" -y', shell=True, capture_output=True)
+                        subprocess.run(
+                            f'ffmpeg -i "{apath}" -af "apad=pad_dur={vdur-adur}" -t {vdur} "{padded}" -y',
+                            shell=True, capture_output=True
+                        )
                     else:
                         padded = apath
 
                     opath = f"/tmp/dubbed_{dest_code}.mp4"
-                    subprocess.run(f'ffmpeg -i "{vpath}" -i "{padded}" -c:v copy -map 0:v:0 -map 1:a:0 -t {vdur} "{opath}" -y', shell=True, capture_output=True)
+                    subprocess.run(
+                        f'ffmpeg -i "{vpath}" -i "{padded}" -c:v copy -map 0:v:0 -map 1:a:0 -t {vdur} "{opath}" -y',
+                        shell=True, capture_output=True
+                    )
                     cur_p += step
                     prog.progress(min(cur_p, 100))
 
@@ -778,13 +821,13 @@ else:
                             dfiles[lang_name] = {"bytes": f.read(), "filename": f"DubIT_{dest_code}.mp4"}
 
                 save_history(uid, {
-                    "filename": uploaded_file.name,
-                    "src_lang": source_lang,
+                    "filename":     uploaded_file.name,
+                    "src_lang":     source_lang,
                     "target_langs": ", ".join(selected_langs),
-                    "voice": selected_voice,
-                    "duration": round(vdur, 1),
-                    "size": f"{fsize} MB",
-                    "time": str(datetime.now())[:16]
+                    "voice":        selected_voice,
+                    "duration":     round(vdur, 1),
+                    "size":         f"{fsize} MB",
+                    "time":         str(datetime.now())[:16]
                 })
                 inc_usage(uid)
                 prog.progress(100)
