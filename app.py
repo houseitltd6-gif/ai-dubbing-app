@@ -345,7 +345,7 @@ if st.query_params.get("panel") == "dubitadmin2024" or st.session_state.get("is_
     """, unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([1, 2, 1])
-        with c2:
+    with c2:
             st.markdown('<div class="auth-box">', unsafe_allow_html=True)
             au = st.text_input("", placeholder="📧 Admin Email", key="au")
             ap = st.text_input("", type="password", placeholder="🔒 Password", key="ap")
