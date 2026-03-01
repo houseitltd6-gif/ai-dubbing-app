@@ -264,7 +264,9 @@ header { visibility: hidden; }
 [data-testid="stToolbar"] { display: none !important; }
 [data-testid="manage-app-button"] { display: none !important; }
 .stDeployButton { display: none !important; }
+#stDecoration { display: none !important; }
 [class*="viewerBadge"] { display: none !important; }
+iframe[title="streamlit_analytics"] { display: none !important; }
 div[class*="ProfilePreview"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
