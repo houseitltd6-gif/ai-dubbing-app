@@ -259,15 +259,22 @@ st.markdown("""
 .footer-brand { font-size: 1rem; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .footer-sub { color: #64748b; font-size: 0.8rem; margin-top: 0.3rem; }
 footer { visibility: hidden; }
+footer { visibility: hidden; }
 #MainMenu { visibility: hidden; }
 header { visibility: hidden; }
 [data-testid="stToolbar"] { display: none !important; }
 [data-testid="manage-app-button"] { display: none !important; }
 .stDeployButton { display: none !important; }
-#stDecoration { display: none !important; }
 [class*="viewerBadge"] { display: none !important; }
-iframe[title="streamlit_analytics"] { display: none !important; }
+[class*="viewer-badge"] { display: none !important; }
 div[class*="ProfilePreview"] { display: none !important; }
+#root > div:last-child { display: none !important; }
+.styles_viewerBadge__CvC9N { display: none !important; }
+.viewerBadge_container__r5tak { display: none !important; }
+.viewerBadge_link__qRIco { display: none !important; }
+section[data-testid="stSidebar"] button { display: none !important; }
+button[kind="header"] { display: none !important; }
+[data-testid="baseButton-header"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
