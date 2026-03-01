@@ -335,7 +335,7 @@ def translate_text(text, src, dest):
 # ADMIN PANEL
 # ======================================
 query_params = st.query_params
-if query_params.get("panel","") == "dubitadmin2024" or st.session_state.is_admin:
+if user_data.get("role") == "admin" or st.session_state.is_admin:
 
     if not st.session_state.is_admin:
         st.markdown("""
