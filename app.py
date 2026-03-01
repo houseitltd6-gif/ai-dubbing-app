@@ -333,7 +333,7 @@ def translate_text(text, src, dest):
     return ' '.join(parts)
 
 # ======================================
-# ADMIN PANEL (FIXED SECTION)
+# ADMIN PANEL (FIXED LOGIC)
 # ======================================
 query_params = st.query_params
 is_authenticated_admin = (
@@ -363,6 +363,7 @@ if is_authenticated_admin:
                     st.error("❌ Wrong credentials!")
             st.markdown('</div>', unsafe_allow_html=True)
     else:
+        # --- Admin Dashboard Content ---
         all_premium = fb_get_all("premium")
         all_users   = fb_get_all("users")
         all_history = fb_get_all("history")
@@ -498,7 +499,7 @@ if not st.session_state.user_uid:
                     if ok:
                         st.session_state.user_email = le
                         st.session_state.user_uid   = res["uid"]
-                        # ডাটাবেসে role: "admin" থাকলে সেশন সেট করা
+                        # ডাটাবেসে role: "admin" থাকলে সেশন আপডেট করা
                         if res.get("role") == "admin":
                             st.session_state.is_admin = True
                         st.session_state.page = "main"
