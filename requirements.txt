@@ -4,3 +4,4 @@ deep-translator
 streamlit
 ffmpeg-python
 edge-tts
+firebase-admin
