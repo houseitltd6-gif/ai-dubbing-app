@@ -33,25 +33,25 @@ db = init_firebase()
 
 ALL_VOICES = {
     "👨 বাংলা পুরুষ — Pradeep":      "bn-BD-PradeepNeural",
-    "👩 বাংলা মহিলা — Nabanita":     "bn-BD-NabanitaNeural",
-    "👨 ইংরেজি পুরুষ — Guy":          "en-US-GuyNeural",
+    "👩 বাংলা মহিলা — Nabanita":      "bn-BD-NabanitaNeural",
+    "👨 ইংরেজি পুরুষ — Guy":           "en-US-GuyNeural",
     "👨 ইংরেজি পুরুষ — Christopher":  "en-US-ChristopherNeural",
-    "👨 ইংরেজি পুরুষ — Eric":         "en-US-EricNeural",
-    "👩 ইংরেজি মহিলা — Jenny":        "en-US-JennyNeural",
-    "👩 ইংরেজি মহিলা — Aria":         "en-US-AriaNeural",
-    "👩 ইংরেজি মহিলা — Sara":         "en-US-SaraNeural",
-    "👨 হিন্দি পুরুষ — Madhur":       "hi-IN-MadhurNeural",
-    "👩 হিন্দি মহিলা — Swara":        "hi-IN-SwaraNeural",
-    "👨 উর্দু পুরুষ — Asad":           "ur-PK-AsadNeural",
-    "👩 উর্দু মহিলা — Uzma":           "ur-PK-UzmaNeural",
-    "👨 টার্কিশ পুরুষ — Ahmet":       "tr-TR-AhmetNeural",
-    "👩 টার্কিশ মহিলা — Emel":        "tr-TR-EmelNeural",
-    "👨 আরবি পুরুষ — Hamed":          "ar-SA-HamedNeural",
-    "👩 আরবি মহিলা — Zariyah":        "ar-SA-ZariyahNeural",
-    "👨 ফ্রেঞ্চ পুরুষ — Henri":        "fr-FR-HenriNeural",
-    "👩 ফ্রেঞ্চ মহিলা — Denise":       "fr-FR-DeniseNeural",
-    "👨 জার্মান পুরুষ — Conrad":       "de-DE-ConradNeural",
-    "👩 জার্মান মহিলা — Katja":        "de-DE-KatjaNeural",
+    "👨 ইংরেজি পুরুষ — Eric":          "en-US-EricNeural",
+    "👩 ইংরেজি মহিলা — Jenny":         "en-US-JennyNeural",
+    "👩 ইংরেজি মহিলা — Aria":          "en-US-AriaNeural",
+    "👩 ইংরেজি মহিলা — Sara":          "en-US-SaraNeural",
+    "👨 হিন্দি পুরুষ — Madhur":        "hi-IN-MadhurNeural",
+    "👩 হিন্দি মহিলা — Swara":         "hi-IN-SwaraNeural",
+    "👨 উর্দু পুরুষ — Asad":            "ur-PK-AsadNeural",
+    "👩 উর্দু মহিলা — Uzma":            "ur-PK-UzmaNeural",
+    "👨 টার্কিশ পুরুষ — Ahmet":        "tr-TR-AhmetNeural",
+    "👩 টার্কিশ মহিলা — Emel":         "tr-TR-EmelNeural",
+    "👨 আরবি পুরুষ — Hamed":           "ar-SA-HamedNeural",
+    "👩 আরবি মহিলা — Zariyah":         "ar-SA-ZariyahNeural",
+    "👨 ফ্রেঞ্চ পুরুষ — Henri":         "fr-FR-HenriNeural",
+    "👩 ফ্রেঞ্চ মহিলা — Denise":        "fr-FR-DeniseNeural",
+    "👨 জার্মান পুরুষ — Conrad":        "de-DE-ConradNeural",
+    "👩 জার্মান মহিলা — Katja":         "de-DE-KatjaNeural",
 }
 
 PREVIEW_TEXT = {
@@ -169,7 +169,8 @@ def register_user(email, password):
     fb_set("users", email, {
         "password": password,
         "uid": uid,
-        "joined": str(datetime.now())[:16]
+        "joined": str(datetime.now())[:16],
+        "role": "user"
     })
     return True, uid
 
@@ -179,7 +180,7 @@ def login_user(email, password):
         return False, "Email পাওয়া যায়নি!"
     if data["password"] != password:
         return False, "Password ভুল!"
-    return True, data["uid"]
+    return True, data
 
 # ---- PAGE CONFIG ----
 st.set_page_config(page_title="DubIT — AI Video Dubbing", page_icon="🎬", layout="centered")
@@ -260,7 +261,7 @@ st.markdown("""
 .stTabs [aria-selected="true"] { background: linear-gradient(135deg, #7c3aed, #2563eb) !important; color: white !important; }
 .footer { text-align: center; padding: 2rem 0 1rem; margin-top: 3rem; }
 .footer-brand { font-size: 1rem; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.footer-sub { color: #1e293b; font-size: 0.8rem; margin-top: 0.3rem; }
+.footer-sub { color: #64748b; font-size: 0.8rem; margin-top: 0.3rem; }
 footer { visibility: hidden; }
 #MainMenu { visibility: hidden; }
 </style>
@@ -332,20 +333,24 @@ def translate_text(text, src, dest):
     return ' '.join(parts)
 
 # ======================================
-# ADMIN PANEL
+# ADMIN PANEL (FIXED SECTION)
 # ======================================
 query_params = st.query_params
-if query_params.get("panel","") == "dubitadmin2024" or st.session_state.is_admin:
+is_authenticated_admin = (
+    query_params.get("panel") == "dubitadmin2024" or 
+    st.session_state.get("is_admin", False)
+)
 
+if is_authenticated_admin:
     if not st.session_state.is_admin:
         st.markdown("""
-        <div class="hero">
-            <div class="hero-badge">SECURE ACCESS</div>
-            <h1>🔑 Admin</h1>
-            <p>DubIT Management Dashboard</p>
-        </div>
+            <div class="hero">
+                <div class="hero-badge">SECURE ACCESS</div>
+                <h1>🔑 Admin</h1>
+                <p>DubIT Management Dashboard</p>
+            </div>
         """, unsafe_allow_html=True)
-        c1,c2,c3 = st.columns([1,2,1])
+        c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
             st.markdown('<div class="auth-box">', unsafe_allow_html=True)
             au = st.text_input("", placeholder="📧 Admin Email", key="au")
@@ -366,14 +371,14 @@ if query_params.get("panel","") == "dubitadmin2024" or st.session_state.is_admin
         total_dubs  = sum(len(v.get("items",[])) for v in all_history.values())
 
         st.markdown("""
-        <div class="hero">
-            <div class="hero-badge">ADMIN DASHBOARD</div>
-            <h1>DubIT</h1>
-            <p>Management & Analytics Panel — Firebase Powered</p>
-        </div>
+            <div class="hero">
+                <div class="hero-badge">ADMIN DASHBOARD</div>
+                <h1>DubIT</h1>
+                <p>Management & Analytics Panel — Firebase Powered</p>
+            </div>
         """, unsafe_allow_html=True)
 
-        c1,c2,c3,c4 = st.columns(4)
+        c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.markdown(f'<div class="admin-stat"><div class="admin-stat-num">{len(all_users)}</div><div class="admin-stat-label">👥 Users</div></div>', unsafe_allow_html=True)
         with c2:
@@ -387,17 +392,17 @@ if query_params.get("panel","") == "dubitadmin2024" or st.session_state.is_admin
 
         monthly_rev = len(active) * 99
         st.markdown(f"""
-        <div style="background:linear-gradient(135deg,#0a2010,#0d2d1a);border:1px solid rgba(16,185,129,0.3);
-        border-radius:16px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center">
-            <div>
-                <div style="color:#10b981;font-size:0.8rem;font-weight:700;letter-spacing:1px">MONTHLY REVENUE</div>
-                <div style="color:white;font-size:2rem;font-weight:800">৳{monthly_rev}</div>
+            <div style="background:linear-gradient(135deg,#0a2010,#0d2d1a);border:1px solid rgba(16,185,129,0.3);
+            border-radius:16px;padding:1.2rem 1.5rem;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div style="color:#10b981;font-size:0.8rem;font-weight:700;letter-spacing:1px">MONTHLY REVENUE</div>
+                    <div style="color:white;font-size:2rem;font-weight:800">৳{monthly_rev}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="color:#64748b;font-size:0.8rem">Per User</div>
+                    <div style="color:#10b981;font-weight:700">৳99/month</div>
+                </div>
             </div>
-            <div style="text-align:right">
-                <div style="color:#64748b;font-size:0.8rem">Per User</div>
-                <div style="color:#10b981;font-weight:700">৳99/month</div>
-            </div>
-        </div>
         """, unsafe_allow_html=True)
 
         if pending:
@@ -432,12 +437,12 @@ if query_params.get("panel","") == "dubitadmin2024" or st.session_state.is_admin
         if all_users:
             st.markdown('<div style="color:#94a3b8;font-size:0.75rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:1rem">👥 Registered Users</div>', unsafe_allow_html=True)
             st.markdown("""
-            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
-            background:rgba(139,92,246,0.1);border-radius:10px;padding:0.7rem 1rem;
-            color:#a78bfa;font-size:0.75rem;font-weight:700;letter-spacing:1px;
-            text-transform:uppercase;margin-bottom:0.5rem">
-                <span>Email</span><span>Status</span><span>আজ</span><span>Joined</span>
-            </div>
+                <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
+                background:rgba(139,92,246,0.1);border-radius:10px;padding:0.7rem 1rem;
+                color:#a78bfa;font-size:0.75rem;font-weight:700;letter-spacing:1px;
+                text-transform:uppercase;margin-bottom:0.5rem">
+                    <span>Email</span><span>Status</span><span>আজ</span><span>Joined</span>
+                </div>
             """, unsafe_allow_html=True)
             for email, info in all_users.items():
                 uid_u  = info.get("uid","")
@@ -477,9 +482,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if not st.session_state.user_uid:
-    tab1, tab2 = st.tabs(["🔐  Login", "📝  Register"])
+    tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
     with tab1:
-        c1,c2,c3 = st.columns([1,3,1])
+        c1, c2, c3 = st.columns([1, 3, 1])
         with c2:
             st.markdown('<div class="auth-box">', unsafe_allow_html=True)
             st.markdown('<p style="color:#a78bfa;font-weight:700;font-size:1.1rem;margin-bottom:1rem">Welcome Back 👋</p>', unsafe_allow_html=True)
@@ -492,15 +497,18 @@ if not st.session_state.user_uid:
                     ok, res = login_user(le, lp)
                     if ok:
                         st.session_state.user_email = le
-                        st.session_state.user_uid   = res
-                        st.session_state.page       = "main"
+                        st.session_state.user_uid   = res["uid"]
+                        # ডাটাবেসে role: "admin" থাকলে সেশন সেট করা
+                        if res.get("role") == "admin":
+                            st.session_state.is_admin = True
+                        st.session_state.page = "main"
                         st.rerun()
                     else:
                         st.error(f"❌ {res}")
             st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
-        c1,c2,c3 = st.columns([1,3,1])
+        c1, c2, c3 = st.columns([1, 3, 1])
         with c2:
             st.markdown('<div class="auth-box">', unsafe_allow_html=True)
             st.markdown('<p style="color:#a78bfa;font-weight:700;font-size:1.1rem;margin-bottom:1rem">Create Account ✨</p>', unsafe_allow_html=True)
@@ -546,7 +554,7 @@ else:
         <div class="stat-card"><div class="stat-number">{remaining}/3</div><div class="stat-label">আজকের বাকি</div></div>
     </div>""", unsafe_allow_html=True)
 
-cn1,cn2,cn3,cn4 = st.columns(4)
+cn1, cn2, cn3, cn4 = st.columns(4)
 with cn1:
     if st.button("🎬 ডাবিং"):
         st.session_state.page = "main"
@@ -566,6 +574,7 @@ with cn4:
         st.session_state.user_uid   = ""
         st.session_state.page       = "login"
         st.session_state.dubbing_done = False
+        st.session_state.is_admin = False
         st.rerun()
 
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
