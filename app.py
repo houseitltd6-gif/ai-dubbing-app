@@ -335,17 +335,16 @@ def translate_text(text, src, dest):
 # ADMIN PANEL
 # ======================================
 query_params = st.query_params
-if user_data.get("role") == "admin" or st.session_state.is_admin:
-
-    if not st.session_state.is_admin:
-        st.markdown("""
+if st.query_params.get("panel") == "dubitadmin2024" or st.session_state.get("is_admin", False):
+    st.markdown("""
         <div class="hero">
-            <div class="hero-badge">SECURE ACCESS</div>
-            <h1>🔑 Admin</h1>
+            <div class="hero-badge">AUTHORIZED ACCESS</div>
+            <h1>🔑 Admin Portal</h1>
             <p>DubIT Management Dashboard</p>
         </div>
-        """, unsafe_allow_html=True)
-        c1,c2,c3 = st.columns([1,2,1])
+    """, unsafe_allow_html=True)
+    
+    c1, c2, c3 = st.columns([1, 2, 1])
         with c2:
             st.markdown('<div class="auth-box">', unsafe_allow_html=True)
             au = st.text_input("", placeholder="📧 Admin Email", key="au")
