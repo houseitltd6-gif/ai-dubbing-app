@@ -6,7 +6,7 @@ from deep_translator import GoogleTranslator, MyMemoryTranslator
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def init_firebase():
     try:
         if not firebase_admin._apps:
@@ -94,13 +94,12 @@ TARGET_LANGUAGES = {
 }
 
 BKASH_NUMBER = "01821282411"
-ADMIN_USER   = "hasibur@dubit.com"
-ADMIN_PASS   = "dubit2024admin"
 FREE_LIMIT   = 3
 
 # ---- FIREBASE HELPERS ----
 def fb_get(collection, doc_id):
     try:
+        if db is None: return None
         doc = db.collection(collection).document(doc_id).get()
         return doc.to_dict() if doc.exists else None
     except:
@@ -108,6 +107,7 @@ def fb_get(collection, doc_id):
 
 def fb_set(collection, doc_id, data):
     try:
+        if db is None: return False
         db.collection(collection).document(doc_id).set(data)
         return True
     except:
@@ -115,6 +115,7 @@ def fb_set(collection, doc_id, data):
 
 def fb_update(collection, doc_id, data):
     try:
+        if db is None: return False
         db.collection(collection).document(doc_id).update(data)
         return True
     except:
@@ -122,6 +123,7 @@ def fb_update(collection, doc_id, data):
 
 def fb_delete(collection, doc_id):
     try:
+        if db is None: return False
         db.collection(collection).document(doc_id).delete()
         return True
     except:
@@ -129,6 +131,7 @@ def fb_delete(collection, doc_id):
 
 def fb_get_all(collection):
     try:
+        if db is None: return {}
         docs = db.collection(collection).stream()
         return {doc.id: doc.to_dict() for doc in docs}
     except:
@@ -174,7 +177,7 @@ def register_user(email, password):
 
 def login_user(email, password):
     data = fb_get("users", email)
-    if not data:        return False, "Email পাওয়া যায়নি!"
+    if not data:                     return False, "Email পাওয়া যায়নি!"
     if data["password"] != password: return False, "Password ভুল!"
     return True, data
 
@@ -248,7 +251,51 @@ st.markdown("""
 .badge-free { display: inline-block; background: rgba(100,116,139,0.2); color: #64748b; padding: 0.3rem 1rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
 .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(139,92,246,0.3), transparent); margin: 1.5rem 0; }
 .stFileUploader > div { background: linear-gradient(135deg, #0d0d20, #141428) !important; border: 2px dashed rgba(139,92,246,0.3) !important; border-radius: 16px !important; }
-.stMultiSelect > div > div, .stSelectbox > div > div, .stTextInput > div > div { background: #0d0d20 !important; border: 1px solid rgba(139,92,246,0.25) !important; border-radius: 12px !important; color: white !important; }
+.stMultiSelect > div > div,
+.stSelectbox > div > div,
+.stTextInput > div > div {
+    background: #0d0d20 !important;
+    border: 1px solid rgba(139,92,246,0.25) !important;
+    border-radius: 12px !important;
+    color: white !important;
+    pointer-events: auto !important;
+    z-index: 999 !important;
+    position: relative !important;
+}
+.stMultiSelect [data-baseweb="select"],
+.stSelectbox [data-baseweb="select"] {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+.stMultiSelect [data-baseweb="popover"],
+.stSelectbox [data-baseweb="popover"] {
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+[data-testid="stAppViewContainer"] {
+    pointer-events: auto !important;
+}
+div[data-baseweb="select"] > div {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+div[role="listbox"] {
+    z-index: 99999 !important;
+    pointer-events: auto !important;
+    background: #0d0d20 !important;
+}
+div[role="option"] {
+    pointer-events: auto !important;
+    color: white !important;
+    background: #0d0d20 !important;
+}
+div[role="option"]:hover {
+    background: rgba(139,92,246,0.2) !important;
+}
+.stApp [data-stale="true"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
 .stButton > button { background: linear-gradient(135deg, #7c3aed, #2563eb) !important; color: white !important; border: none !important; border-radius: 12px !important; padding: 0.8rem 1.5rem !important; font-size: 0.95rem !important; font-weight: 700 !important; width: 100% !important; box-shadow: 0 4px 15px rgba(124,58,237,0.3) !important; }
 .stProgress > div > div { background: linear-gradient(135deg, #7c3aed, #2563eb) !important; border-radius: 10px !important; }
 .stDownloadButton > button { background: linear-gradient(135deg, #065f46, #047857) !important; color: white !important; border: 1px solid rgba(16,185,129,0.3) !important; border-radius: 12px !important; font-weight: 700 !important; width: 100% !important; margin-bottom: 0.5rem !important; }
@@ -259,7 +306,6 @@ st.markdown("""
 .footer-brand { font-size: 1rem; font-weight: 700; background: linear-gradient(135deg, #a78bfa, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .footer-sub { color: #64748b; font-size: 0.8rem; margin-top: 0.3rem; }
 footer { visibility: hidden; }
-footer { visibility: hidden; }
 #MainMenu { visibility: hidden; }
 header { visibility: hidden; }
 [data-testid="stToolbar"] { display: none !important; }
@@ -268,13 +314,8 @@ header { visibility: hidden; }
 [class*="viewerBadge"] { display: none !important; }
 [class*="viewer-badge"] { display: none !important; }
 div[class*="ProfilePreview"] { display: none !important; }
-#root > div:last-child { display: none !important; }
 .styles_viewerBadge__CvC9N { display: none !important; }
 .viewerBadge_container__r5tak { display: none !important; }
-.viewerBadge_link__qRIco { display: none !important; }
-section[data-testid="stSidebar"] button { display: none !important; }
-button[kind="header"] { display: none !important; }
-[data-testid="baseButton-header"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -367,7 +408,8 @@ if is_admin_url:
             au = st.text_input("", placeholder="📧 Admin Email", key="au")
             ap = st.text_input("", type="password", placeholder="🔒 Password", key="ap")
             if st.button("🔑 Admin Login"):
-                if au == ADMIN_USER and ap == ADMIN_PASS:
+                ok, res = login_user(au, ap)
+                if ok and res.get("role") == "admin":
                     st.session_state.is_admin = True
                     st.rerun()
                 else:
@@ -493,7 +535,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ---- LOGIN / REGISTER ----
 if not st.session_state.user_uid:
     tab1, tab2 = st.tabs(["🔐  Login", "📝  Register"])
 
@@ -523,7 +564,6 @@ if not st.session_state.user_uid:
     with tab2:
         c1, c2, c3 = st.columns([1, 3, 1])
         with c2:
-            # ---- Feature Preview Box ----
             st.markdown("""
             <div style="background:linear-gradient(135deg,#1a0533,#0d1b4b);
             border:1px solid rgba(139,92,246,0.4);border-radius:16px;
@@ -554,7 +594,6 @@ if not st.session_state.user_uid:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
             st.markdown('<div class="auth-box">', unsafe_allow_html=True)
             st.markdown('<p style="color:#a78bfa;font-weight:700;font-size:1.1rem;margin-bottom:1rem">Create Account ✨</p>', unsafe_allow_html=True)
             re_ = st.text_input("", placeholder="📧 Email", key="re_")
@@ -616,11 +655,11 @@ with cn3:
         st.rerun()
 with cn4:
     if st.button("🚪 Logout"):
-        st.session_state.user_email  = ""
-        st.session_state.user_uid    = ""
-        st.session_state.page        = "login"
+        st.session_state.user_email   = ""
+        st.session_state.user_uid     = ""
+        st.session_state.page         = "login"
         st.session_state.dubbing_done = False
-        st.session_state.is_admin    = False
+        st.session_state.is_admin     = False
         st.rerun()
 
 st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
