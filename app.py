@@ -1,5 +1,5 @@
 import streamlit as st
-import subprocess, os, whisper, json, uuid
+import subprocess, os, whisper, uuid
 from datetime import datetime, date
 from gtts import gTTS
 from deep_translator import GoogleTranslator, MyMemoryTranslator
@@ -102,40 +102,35 @@ def fb_get(collection, doc_id):
         if db is None: return None
         doc = db.collection(collection).document(doc_id).get()
         return doc.to_dict() if doc.exists else None
-    except:
-        return None
+    except: return None
 
 def fb_set(collection, doc_id, data):
     try:
         if db is None: return False
         db.collection(collection).document(doc_id).set(data)
         return True
-    except:
-        return False
+    except: return False
 
 def fb_update(collection, doc_id, data):
     try:
         if db is None: return False
         db.collection(collection).document(doc_id).update(data)
         return True
-    except:
-        return False
+    except: return False
 
 def fb_delete(collection, doc_id):
     try:
         if db is None: return False
         db.collection(collection).document(doc_id).delete()
         return True
-    except:
-        return False
+    except: return False
 
 def fb_get_all(collection):
     try:
         if db is None: return {}
         docs = db.collection(collection).stream()
         return {doc.id: doc.to_dict() for doc in docs}
-    except:
-        return {}
+    except: return {}
 
 def is_premium(uid):
     data = fb_get("premium", uid)
@@ -272,30 +267,12 @@ st.markdown("""
     z-index: 9999 !important;
     pointer-events: auto !important;
 }
-[data-testid="stAppViewContainer"] {
-    pointer-events: auto !important;
-}
-div[data-baseweb="select"] > div {
-    pointer-events: auto !important;
-    cursor: pointer !important;
-}
-div[role="listbox"] {
-    z-index: 99999 !important;
-    pointer-events: auto !important;
-    background: #0d0d20 !important;
-}
-div[role="option"] {
-    pointer-events: auto !important;
-    color: white !important;
-    background: #0d0d20 !important;
-}
-div[role="option"]:hover {
-    background: rgba(139,92,246,0.2) !important;
-}
-.stApp [data-stale="true"] {
-    opacity: 1 !important;
-    visibility: visible !important;
-}
+[data-testid="stAppViewContainer"] { pointer-events: auto !important; }
+div[data-baseweb="select"] > div { pointer-events: auto !important; cursor: pointer !important; }
+div[role="listbox"] { z-index: 99999 !important; pointer-events: auto !important; background: #0d0d20 !important; }
+div[role="option"] { pointer-events: auto !important; color: white !important; background: #0d0d20 !important; }
+div[role="option"]:hover { background: rgba(139,92,246,0.2) !important; }
+.stApp [data-stale="true"] { opacity: 1 !important; visibility: visible !important; }
 .stButton > button { background: linear-gradient(135deg, #7c3aed, #2563eb) !important; color: white !important; border: none !important; border-radius: 12px !important; padding: 0.8rem 1.5rem !important; font-size: 0.95rem !important; font-weight: 700 !important; width: 100% !important; box-shadow: 0 4px 15px rgba(124,58,237,0.3) !important; }
 .stProgress > div > div { background: linear-gradient(135deg, #7c3aed, #2563eb) !important; border-radius: 10px !important; }
 .stDownloadButton > button { background: linear-gradient(135deg, #065f46, #047857) !important; color: white !important; border: 1px solid rgba(16,185,129,0.3) !important; border-radius: 12px !important; font-weight: 700 !important; width: 100% !important; margin-bottom: 0.5rem !important; }
@@ -333,9 +310,16 @@ def text_to_speech(text, voice_code, output_path):
         tf = "/tmp/tts_input.txt"
         with open(tf, "w", encoding="utf-8") as f:
             f.write(text)
+        raw_path = output_path.replace(".mp3", "_raw.mp3")
         subprocess.run(
-            f'edge-tts --voice "{voice_code}" --file "{tf}" --write-media "{output_path}"',
+            f'edge-tts --voice "{voice_code}" --file "{tf}" --write-media "{raw_path}"',
             shell=True, capture_output=True, timeout=120
+        )
+        if not os.path.exists(raw_path) or os.path.getsize(raw_path) < 1000:
+            return False
+        subprocess.run(
+            f'ffmpeg -i "{raw_path}" -acodec libmp3lame -ar 44100 -ab 128k "{output_path}" -y',
+            shell=True, capture_output=True, timeout=60
         )
         return os.path.exists(output_path) and os.path.getsize(output_path) > 1000
     except:
@@ -383,6 +367,37 @@ def translate_text(text, src, dest):
             except:
                 parts.append(chunk)
     return ' '.join(parts)
+
+def merge_video_audio(vpath, apath, opath, vdur):
+    # পুরনো file মুছে দাও
+    if os.path.exists(opath):
+        os.remove(opath)
+    # Method 1 — aac encoding
+    r = subprocess.run(
+        f'ffmpeg -i "{vpath}" -i "{apath}" '
+        f'-c:v copy -c:a aac -ar 44100 -ab 128k '
+        f'-map 0:v:0 -map 1:a:0 -shortest "{opath}" -y',
+        shell=True, capture_output=True, timeout=300
+    )
+    if os.path.exists(opath) and os.path.getsize(opath) > 10000:
+        return True
+    # Method 2 — fallback
+    subprocess.run(
+        f'ffmpeg -i "{vpath}" -i "{apath}" '
+        f'-vcodec copy -acodec aac '
+        f'-map 0:v -map 1:a "{opath}" -y',
+        shell=True, capture_output=True, timeout=300
+    )
+    if os.path.exists(opath) and os.path.getsize(opath) > 10000:
+        return True
+    # Method 3 — re-encode video too
+    subprocess.run(
+        f'ffmpeg -i "{vpath}" -i "{apath}" '
+        f'-c:v libx264 -c:a aac -ar 44100 '
+        f'-map 0:v:0 -map 1:a:0 "{opath}" -y',
+        shell=True, capture_output=True, timeout=300
+    )
+    return os.path.exists(opath) and os.path.getsize(opath) > 10000
 
 # ======================================
 # ADMIN PANEL
@@ -827,8 +842,10 @@ else:
                 prog   = st.progress(0)
                 status = st.empty()
                 status.info("⏳ অডিও বের হচ্ছে...")
-                subprocess.run(f'ffmpeg -i "{vpath}" -q:a 0 -map a /tmp/audio_src.mp3 -y',
-                               shell=True, capture_output=True)
+                subprocess.run(
+                    f'ffmpeg -i "{vpath}" -q:a 0 -map a /tmp/audio_src.mp3 -y',
+                    shell=True, capture_output=True
+                )
                 prog.progress(20)
 
                 status.info("⏳ AI টেক্সট বের করছে...")
@@ -837,9 +854,9 @@ else:
                 src_text = result["text"]
                 prog.progress(40)
 
-                vdur  = get_duration(vpath)
-                step  = 60 // len(selected_langs)
-                cur_p = 40
+                vdur   = get_duration(vpath)
+                step   = 60 // len(selected_langs)
+                cur_p  = 40
                 dfiles = {}
                 fsize  = round(os.path.getsize(vpath) / (1024*1024), 1)
 
@@ -849,47 +866,58 @@ else:
                     translated = translate_text(src_text, src_code, dest_code)
                     apath      = f"/tmp/audio_{dest_code}.mp3"
                     comp_voice = get_compatible_voice(vc, dest_code)
+
                     if not text_to_speech(translated, comp_voice, apath):
                         text_to_speech_gtts(translated, dest_code, apath)
 
+                    # Audio padding
                     padded = f"/tmp/padded_{dest_code}.mp3"
                     adur   = get_duration(apath)
                     if adur > 0 and adur < vdur:
                         subprocess.run(
-                            f'ffmpeg -i "{apath}" -af "apad=pad_dur={vdur-adur}" -t {vdur} "{padded}" -y',
+                            f'ffmpeg -i "{apath}" -af "apad=pad_dur={vdur-adur}" '
+                            f'-t {vdur} "{padded}" -y',
                             shell=True, capture_output=True
                         )
                     else:
                         padded = apath
 
+                    # Video + Audio merge
                     opath = f"/tmp/dubbed_{dest_code}.mp4"
-                    subprocess.run(
-                        f'ffmpeg -i "{vpath}" -i "{padded}" -c:v copy -map 0:v:0 -map 1:a:0 -t {vdur} "{opath}" -y',
-                        shell=True, capture_output=True
-                    )
+                    merge_video_audio(vpath, padded, opath, vdur)
+
                     cur_p += step
                     prog.progress(min(cur_p, 100))
 
-                    if os.path.exists(opath):
+                    if os.path.exists(opath) and os.path.getsize(opath) > 10000:
                         with open(opath, "rb") as f:
-                            dfiles[lang_name] = {"bytes": f.read(), "filename": f"DubIT_{dest_code}.mp4"}
+                            dfiles[lang_name] = {
+                                "bytes": f.read(),
+                                "filename": f"DubIT_{dest_code}.mp4"
+                            }
+                    else:
+                        st.warning(f"⚠️ {lang_name} dubbing এ সমস্যা হয়েছে।")
 
-                save_history(uid, {
-                    "filename":     uploaded_file.name,
-                    "src_lang":     source_lang,
-                    "target_langs": ", ".join(selected_langs),
-                    "voice":        selected_voice,
-                    "duration":     round(vdur, 1),
-                    "size":         f"{fsize} MB",
-                    "time":         str(datetime.now())[:16]
-                })
-                inc_usage(uid)
-                prog.progress(100)
-                status.empty()
-                st.session_state.dubbed_files   = dfiles
-                st.session_state.dubbing_done   = True
-                st.session_state.selected_voice = selected_voice
-                st.rerun()
+                if dfiles:
+                    save_history(uid, {
+                        "filename":     uploaded_file.name,
+                        "src_lang":     source_lang,
+                        "target_langs": ", ".join(selected_langs),
+                        "voice":        selected_voice,
+                        "duration":     round(vdur, 1),
+                        "size":         f"{fsize} MB",
+                        "time":         str(datetime.now())[:16]
+                    })
+                    inc_usage(uid)
+                    prog.progress(100)
+                    status.empty()
+                    st.session_state.dubbed_files   = dfiles
+                    st.session_state.dubbing_done   = True
+                    st.session_state.selected_voice = selected_voice
+                    st.rerun()
+                else:
+                    status.empty()
+                    st.error("❌ Dubbing সম্পন্ন হয়নি। আবার চেষ্টা করুন।")
 
 st.markdown("""
 <div class="footer">
