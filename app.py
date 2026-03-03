@@ -310,18 +310,13 @@ def text_to_speech(text, voice_code, output_path):
         tf = "/tmp/tts_input.txt"
         with open(tf, "w", encoding="utf-8") as f:
             f.write(text)
-        raw_path = output_path.replace(".mp3", "_raw.mp3")
         subprocess.run(
-            f'edge-tts --voice "{voice_code}" --file "{tf}" --write-media "{raw_path}"',
+            f'edge-tts --voice "{voice_code}" --file "{tf}" --write-media "{output_path}"',
             shell=True, capture_output=True, timeout=120
         )
-        if not os.path.exists(raw_path) or os.path.getsize(raw_path) < 1000:
-            return False
-        subprocess.run(
-            f'ffmpeg -i "{raw_path}" -acodec libmp3lame -ar 44100 -ab 128k "{output_path}" -y',
-            shell=True, capture_output=True, timeout=60
-        )
-        return os.path.exists(output_path) and os.path.getsize(output_path) > 1000
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+            return True
+        return False
     except:
         return False
 
@@ -369,32 +364,45 @@ def translate_text(text, src, dest):
     return ' '.join(parts)
 
 def merge_video_audio(vpath, apath, opath, vdur):
-    # পুরনো file মুছে দাও
     if os.path.exists(opath):
         os.remove(opath)
-    # Method 1 — aac encoding
-    r = subprocess.run(
-        f'ffmpeg -i "{vpath}" -i "{apath}" '
-        f'-c:v copy -c:a aac -ar 44100 -ab 128k '
-        f'-map 0:v:0 -map 1:a:0 -shortest "{opath}" -y',
+
+    # Step 1: audio কে WAV এ convert
+    wav_path = apath.replace(".mp3", ".wav")
+    subprocess.run(
+        f'ffmpeg -i "{apath}" -ar 44100 -ac 2 "{wav_path}" -y',
+        shell=True, capture_output=True, timeout=60
+    )
+    audio_input = wav_path if os.path.exists(wav_path) and os.path.getsize(wav_path) > 1000 else apath
+
+    # Step 2: video only বের করি
+    video_only = "/tmp/video_only.mp4"
+    subprocess.run(
+        f'ffmpeg -i "{vpath}" -c:v copy -an "{video_only}" -y',
+        shell=True, capture_output=True, timeout=120
+    )
+    v_input = video_only if os.path.exists(video_only) and os.path.getsize(video_only) > 1000 else vpath
+
+    # Step 3: merge — Method 1
+    subprocess.run(
+        f'ffmpeg -i "{v_input}" -i "{audio_input}" '
+        f'-c:v copy -c:a aac -ar 44100 -ac 2 '
+        f'-map 0:v:0 -map 1:a:0 '
+        f'-shortest "{opath}" -y',
         shell=True, capture_output=True, timeout=300
     )
     if os.path.exists(opath) and os.path.getsize(opath) > 10000:
         return True
-    # Method 2 — fallback
+
+    # Step 4: Fallback — re-encode সব
+    if os.path.exists(opath):
+        os.remove(opath)
     subprocess.run(
-        f'ffmpeg -i "{vpath}" -i "{apath}" '
-        f'-vcodec copy -acodec aac '
-        f'-map 0:v -map 1:a "{opath}" -y',
-        shell=True, capture_output=True, timeout=300
-    )
-    if os.path.exists(opath) and os.path.getsize(opath) > 10000:
-        return True
-    # Method 3 — re-encode video too
-    subprocess.run(
-        f'ffmpeg -i "{vpath}" -i "{apath}" '
-        f'-c:v libx264 -c:a aac -ar 44100 '
-        f'-map 0:v:0 -map 1:a:0 "{opath}" -y',
+        f'ffmpeg -i "{vpath}" -i "{audio_input}" '
+        f'-c:v libx264 -preset fast -crf 23 '
+        f'-c:a aac -ar 44100 -ac 2 -b:a 128k '
+        f'-map 0:v:0 -map 1:a:0 '
+        f'-shortest "{opath}" -y',
         shell=True, capture_output=True, timeout=300
     )
     return os.path.exists(opath) and os.path.getsize(opath) > 10000
@@ -873,12 +881,16 @@ else:
                     # Audio padding
                     padded = f"/tmp/padded_{dest_code}.mp3"
                     adur   = get_duration(apath)
-                    if adur > 0 and adur < vdur:
-                        subprocess.run(
-                            f'ffmpeg -i "{apath}" -af "apad=pad_dur={vdur-adur}" '
+                    if adur > 0 and vdur > 0 and adur < vdur:
+                        r = subprocess.run(
+                            f'ffmpeg -i "{apath}" '
+                            f'-af "apad=pad_dur={max(0, vdur-adur)}" '
+                            f'-ar 44100 -ac 2 '
                             f'-t {vdur} "{padded}" -y',
-                            shell=True, capture_output=True
+                            shell=True, capture_output=True, timeout=60
                         )
+                        if not os.path.exists(padded) or os.path.getsize(padded) < 1000:
+                            padded = apath
                     else:
                         padded = apath
 
